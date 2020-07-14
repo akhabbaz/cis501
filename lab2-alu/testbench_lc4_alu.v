@@ -10,7 +10,7 @@ module test_alu;
    `include "print_points.v"
 
    // debugging state variables
-   integer  aluInFile, gpInFile, outputFile, errors, tests, lineno, claTests;
+   integer  aluInFile, gpInFile, outputFile, errors, tests, lineno, claTests, ;
 
    // inputs
    reg [3:0]   gin, pin;
@@ -28,7 +28,9 @@ module test_alu;
    reg [15:0]  expectedSum, expectedALUResult;
    
    // instantiate the Units Under Test (UUTs)
-   gp4 gp(.gin(gin), .pin(pin), .cin(cin), .gout(actualGout), .pout(actualPout), .cout(actualCout));
+   // this now tests gpn can change to gp4 and remove the #(4) to get back to
+   // gp4
+   gpn #(4) gp(.gin(gin), .pin(pin), .cin(cin), .gout(actualGout), .pout(actualPout), .cout(actualCout));
    cla16 cla (.a(ain), .b(bin), .cin(cin), .sum(actualSum));
    lc4_alu alu (.i_insn(insn), .i_pc(pc), .i_r1data(r1data), .i_r2data(r2data), .o_result(actualALUResult));
    

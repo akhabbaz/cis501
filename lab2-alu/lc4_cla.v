@@ -178,3 +178,48 @@ module gpn
    assign gout = g[N-1];
    assign pout = p[N-1];
 endmodule
+
+
+//cla64 is like cla16 but it is 64 bits and uses gpn 8 it is a full 64 bit adder
+module cla64
+  (input wire [63:0]  a, b,
+   input wire         cin,
+   output wire [63:0] sum);
+   // size of gp4
+   parameter N = 8;
+   // gin and pin loaded
+   wire [63:0] gin, pin, ca_in;
+   // the carries
+   assign ca_in[0] = cin;
+   // generate, propogate 4 wires at a time
+   // gin3[0] is g(3,0) gin3[1] is g(7, 4)
+   genvar i;
+   generate
+   	for (i=0; i < 64; i = i + 1) begin
+	   	gp1   gp(.a(a[i]), .b(b[i]), .g(gin[i]), .p(pin[i]));
+   	end
+   endgenerate
+   wire [N:0] gint, pint;
+   genvar k;
+   generate
+   	for (k = 0; k < N; k = k + 1) begin
+   		gpn #(N)  m(.gin(gin[N*k + 7:N*k]), .pin(pin[N*k + 7:N*k]), 
+		  .cin(ca_in[N*k]), .gout(gint[k]), .pout(pint[k]), 
+		  .cout(ca_in[N*k + 7:N*k + 1]));
+   	end
+   endgenerate
+  // wire [63:0] ctemp;   
+   // use gint, pint to generate ca_in[12, 8, 4].
+   //wire [2:0] coutI;
+   gpn #(N)  m07(.gin(gint[7:0]), .pin(pint[7:0]), .cin(ca_in[0]), 
+                   .gout(gint[N]), .pout(pint[N]), 
+        	   .cout({ca_in[7*N], ca_in[6*N], ca_in[5*N], 
+                       ca_in[4*N], ca_in[3*N], ca_in[2*N], 
+                       ca_in[1*N]}));
+   
+   // sum is xor of gin, pin, ca_in (or ca_in, a, b)
+  // assign ctemp = {2'b0, coutI,  gint, pint};
+   //assign ctemp = {12'b0,  pint[3:0]};
+   //assign   sum = ctemp; 
+   assign   sum = gin ^ pin ^ ca_in; 
+endmodule
