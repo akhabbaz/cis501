@@ -10,22 +10,26 @@ module test_alu;
    `include "print_points.v"
 
    // debugging state variables
-   integer  aluInFile, gpInFile, outputFile, errors, tests, lineno, claTests, ;
+   integer  aluInFile, gpInFile, outputFile, errors, tests, lineno, claTests,
+	cla64Tests;
 
    // inputs
    reg [3:0]   gin, pin;
-   reg         cin;
+   reg         cin, cin64;
    reg [15:0]  ain, bin, insn, pc, r1data, r2data;
+   reg [63:0]  ain64, bin64;
    
    // module outputs
    wire        actualGout, actualPout;
    wire [2:0]  actualCout;
    wire [15:0] actualSum, actualALUResult;
+   wire [63:0] actualSum64;
 
    // file outputs
    reg         expectedGout, expectedPout;
    reg [2:0]   expectedCout;
    reg [15:0]  expectedSum, expectedALUResult;
+   reg [63:0]  expectedSum64;
    
    // instantiate the Units Under Test (UUTs)
    // this now tests gpn can change to gp4 and remove the #(4) to get back to
@@ -33,6 +37,7 @@ module test_alu;
    gpn #(4) gp(.gin(gin), .pin(pin), .cin(cin), .gout(actualGout), .pout(actualPout), .cout(actualCout));
    cla16 cla (.a(ain), .b(bin), .cin(cin), .sum(actualSum));
    lc4_alu alu (.i_insn(insn), .i_pc(pc), .i_r1data(r1data), .i_r2data(r2data), .o_result(actualALUResult));
+   cla64 claB (.a(ain64), .b(bin64), .cin(cin64), .sum(actualSum64));
    
    initial begin
       // initialize Inputs
@@ -101,6 +106,20 @@ module test_alu;
          #2;
          if (expectedSum !== actualSum) begin
             $display("[cla] error a:%d + b:%d + cin:%d = sum:%d instead of %d", ain, bin, cin, actualSum, expectedSum);
+            errors = errors+1;
+            //$finish; // NB: uncomment this to terminate after the first error
+         end
+      end
+      //cla64 tests
+      for (cla64Tests=0; cla64Tests < 40000; cla64Tests=cla64Tests+1) begin
+         ain64 = $urandom;
+         bin64 = $urandom;
+         cin64 = $urandom % 2;
+         expectedSum64 = ain64 + bin64 + cin64;
+         tests = tests+1;
+         #2;
+         if (expectedSum64 !== actualSum64) begin
+            $display("[cla] error a:%d + b:%d + cin:%d = sum:%d instead of %d", ain64, bin64, cin64, actualSum64, expectedSum64);
             errors = errors+1;
             //$finish; // NB: uncomment this to terminate after the first error
          end
