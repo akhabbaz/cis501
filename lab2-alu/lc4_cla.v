@@ -201,6 +201,7 @@ module cla64
    endgenerate
    wire [N:0] gint, pint;
    genvar k;
+   // two ways to instantiate parameters shown here
    generate
    	for (k = 0; k < N; k = k + 1) begin
    		gpn #(N)  m(.gin(gin[N*k + 7:N*k]), .pin(pin[N*k + 7:N*k]), 
@@ -211,15 +212,22 @@ module cla64
   // wire [63:0] ctemp;   
    // use gint, pint to generate ca_in[12, 8, 4].
    //wire [2:0] coutI;
-   gpn #(N)  m07(.gin(gint[7:0]), .pin(pint[7:0]), .cin(ca_in[0]), 
+   gpn   m07(.gin(gint[7:0]), .pin(pint[7:0]), .cin(ca_in[0]), 
                    .gout(gint[N]), .pout(pint[N]), 
         	   .cout({ca_in[7*N], ca_in[6*N], ca_in[5*N], 
                        ca_in[4*N], ca_in[3*N], ca_in[2*N], 
                        ca_in[1*N]}));
-   
+   defparam m07.N = N;
    // sum is xor of gin, pin, ca_in (or ca_in, a, b)
   // assign ctemp = {2'b0, coutI,  gint, pint};
    //assign ctemp = {12'b0,  pint[3:0]};
    //assign   sum = ctemp; 
    assign   sum = gin ^ pin ^ ca_in; 
 endmodule
+/* cla16Sub subtracts b from a, a - b,  using cla16. 
+*/
+module cla16Sub
+  (input wire [15:0]  a, b,
+   output wire [15:0] d);
+   cla16  thisM(.a(a[15:0]), .b(~b[15:0]), .cin(1'b1), .sum(d[15:0]));
+endmodule  
