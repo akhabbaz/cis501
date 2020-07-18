@@ -1,4 +1,4 @@
-/* TODO: INSERT NAME AND PENNKEY HERE */
+/* TODO: :INSERT NAME AND PENNKEY HERE */
 `include "lc4_cla.v"
 `timescale 1ns / 1ps
 `default_nettype none
@@ -72,13 +72,13 @@ module lc4_divider_one_iter(input  wire [15:0] i_dividend,
                  else
                      begin
               	       o_quotient  = i_quotient << `oneH | `oneH;
+                       //cla16Sub claSub(.a(rem), .b(i_divisor), .d(o_remainder)); 
                        o_remainder = rem - i_divisor;
-                       cla16Sub claSub(.a(rem[15:0]), .b(i_divisor[15:0]),   
-                                        .d( o_remainder[15:0])); 
                      end
                end
        end 
-       assign o_dividend = i_dividend << `oneH; 
+       assign o_dividend = i_dividend << `oneH;
+endmodule 
 module lc4_divider_one_iter2(input  wire [15:0] i_dividend,
                             input  wire [15:0] i_divisor,
                             input  wire [15:0] i_remainder,
@@ -86,12 +86,14 @@ module lc4_divider_one_iter2(input  wire [15:0] i_dividend,
                             output wire [15:0] o_dividend,
                             output wire  [15:0] o_remainder,
                             output wire  [15:0] o_quotient);
-       wire [15:0] rem;
+       wire [15:0] rem, newRem;
        assign rem = (i_remainder << `oneH) | (i_dividend>> `FH) & `oneH;
        wire  remTooSmall = rem < i_divisor;
        wire  div0 = i_divisor == `zeroH;
+       cla16Sub claSub(.a(rem), .b(i_divisor), .d(newRem)); 
        assign o_remainder =(div0)? `zeroH:
-                    (remTooSmall)? rem: rem - i_divisor;
+                    (remTooSmall)? rem: //rem - i_divisor;
+                                      newRem;
        assign o_quotient = (div0)? `zeroH:
                     (remTooSmall)? i_quotient << `oneH :
                                   i_quotient << `oneH |`oneH;

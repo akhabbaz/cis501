@@ -1,7 +1,9 @@
-/* TODO: INSERT NAME AND PENNKEY HERE */
+/* TODO: Anton Khabbaz akhabbaz */
+/**/
+//`include "lc4_cla.h"
 
-/**
- * @param a first 1-bit input
+`timescale 1ns / 1ps
+ /* @param a first 1-bit input
  * @param b second 1-bit input
  * @param g whether a and b generate a carry
  * @param p whether a and b would propagate an incoming carry
