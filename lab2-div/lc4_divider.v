@@ -1,6 +1,6 @@
 /* TODO: :INSERT NAME AND PENNKEY HERE */
-`include "lc4_cla.v"
 `timescale 1ns / 1ps
+`include "lc4_cla.v"
 `default_nettype none
 `define zeroH 16'h0
 `define oneH  16'h1

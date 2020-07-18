@@ -1,8 +1,6 @@
 /* TODO: Anton Khabbaz akhabbaz */
 /**/
-//`include "lc4_cla.h"
 
-`timescale 1ns / 1ps
  /* @param a first 1-bit input
  * @param b second 1-bit input
  * @param g whether a and b generate a carry
