@@ -126,13 +126,13 @@ module test_divider;
       end
       
       // loop 2000 times, with a one-indexed number for each test
-      for (divTests = 0; divTests < 16000;) begin
+      for (divTests = 0; divTests < 32000;) begin
 
          // set random dividend and divisor
          i_dividend = $random;
          i_divisor = $random;
 
-         if (divTests >= 8000) begin
+         if (divTests >= 16000) begin
             i_divisor = 16'h0000;
          end
 
