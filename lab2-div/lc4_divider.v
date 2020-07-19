@@ -14,13 +14,15 @@ module lc4_divider(input  wire [15:0] i_dividend,
       // 0th iteration inputs are from function inputs or constants
       // 15th output is either not needed or the output variables
       // 16*15 lines
-      wire [239:0] remainder, dividend, quotient;
-      //size of intermediate and final results
       parameter N = 16;
-      parameter N_1 = 15;
-      parameter N_2 = 14;
-      parameter srt = N_2 *N;
-      parameter stp = srt + N_1;
+      localparam N_1 = N - 1;
+      localparam N_2 =N - 2;
+      localparam srt = N_2 *N;
+      localparam stp = srt + N_1;
+      localparam k = 0;
+      localparam kn = N;
+      wire [stp:0] remainder, dividend, quotient;
+      //size of intermediate and final results
       // first loop initialize 
       lc4_divider_one_iter div0(.i_dividend(i_dividend), .i_divisor(i_divisor),
 		.i_remainder(`zeroH), .i_quotient(`zeroH),
@@ -30,8 +32,8 @@ module lc4_divider(input  wire [15:0] i_dividend,
       generate
           for (i = 0; i < N_2; i = i + 1)
             begin
-               parameter  k = i*N;
-               parameter  kn = (i+1)*N;
+               localparam   k = i*N;
+               localparam  kn = (i+1)*N;
                lc4_divider_one_iter div(.i_dividend(dividend[N_1+ k:k]), 
                    .i_divisor(i_divisor), .i_remainder(remainder[N_1+ k:k]), 
                    .i_quotient(quotient[N_1+ k:k]), .o_dividend(dividend[N_1+ kn:kn]), 
