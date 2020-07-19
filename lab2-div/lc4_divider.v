@@ -30,8 +30,8 @@ module lc4_divider(input  wire [15:0] i_dividend,
       generate
           for (i = 0; i < N_2; i = i + 1)
             begin
-               parameter k = i*N;
-               parameter kn = (i+1)*N;
+               parameter  k = i*N;
+               parameter  kn = (i+1)*N;
                lc4_divider_one_iter div(.i_dividend(dividend[N_1+ k:k]), 
                    .i_divisor(i_divisor), .i_remainder(remainder[N_1+ k:k]), 
                    .i_quotient(quotient[N_1+ k:k]), .o_dividend(dividend[N_1+ kn:kn]), 
