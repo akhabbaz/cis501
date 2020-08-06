@@ -130,40 +130,40 @@ module test_alu;
       // *** ALU TESTING ***
       // *******************
       
-//      lineno = 0;
-//      // read in the ALU input trace one line at a time
-//      while (5 == $fscanf(aluInFile, "%b %b %b %b %b", insn, pc, r1data, r2data, expectedALUResult)) begin
-//         #2; // wait for inputs to propagate through ALU
-//         
-//         tests = tests + 1;
-//         lineno = lineno+1;
-//                
-//         // write the output to the output trace file
-//         //if (outputFile) begin
-//         //   $fdisplay(outputFile, "%b %b %b %b %b", insn, pc, r1data, r2data, actualALUResult);
-//         //end
-//         
-//         // print an error if one occurred
-//         if (actualALUResult !== expectedALUResult) begin
-//            errors = errors + 1;
-//
-//            // break up all binary values into groups of four bits for readability
-//            $write("[alu] error at line %04d: ",    lineno);
-//            $write("insn = %b %b %b %b, ",    insn[15:12],       insn[11:8],       insn[7:4],       insn[3:0]);
-//            $write("pc = %b %b %b %b, ",      pc[15:12],         pc[11:8],         pc[7:4],         pc[3:0]);
-//            $write("r1data = %b %b %b %b, ",  r1data[15:12],     r1data[11:8],     r1data[7:4],     r1data[3:0]);
-//            $write("r2data = %b %b %b %b, ",  r2data[15:12],     r2data[11:8],     r2data[7:4],     r2data[3:0]);
-//            $write("result = %b %b %b %b ",   actualALUResult[15:12],     actualALUResult[11:8],     actualALUResult[7:4],     actualALUResult[3:0]);
-//            $write("instead of %b %b %b %b ", expectedALUResult[15:12], expectedALUResult[11:8], expectedALUResult[7:4], expectedALUResult[3:0]);
-//            
-//            pinstr(insn); // pretty-print the instruction
-//            $display("");
-//            //$finish; // NB: uncomment this to terminate after the first error
-//         end
-//         
-//         #2;
-//      end // end while
-//      
+      lineno = 0;
+      // read in the ALU input trace one line at a time
+      while (5 == $fscanf(aluInFile, "%b %b %b %b %b", insn, pc, r1data, r2data, expectedALUResult)) begin
+         #2; // wait for inputs to propagate through ALU
+         
+         tests = tests + 1;
+         lineno = lineno+1;
+                
+         // write the output to the output trace file
+         //if (outputFile) begin
+         //   $fdisplay(outputFile, "%b %b %b %b %b", insn, pc, r1data, r2data, actualALUResult);
+         //end
+         
+         // print an error if one occurred
+         if (actualALUResult !== expectedALUResult) begin
+            errors = errors + 1;
+
+            // break up all binary values into groups of four bits for readability
+            $write("[alu] error at line %04d: ",    lineno);
+            $write("insn = %b %b %b %b, ",    insn[15:12],       insn[11:8],       insn[7:4],       insn[3:0]);
+            $write("pc = %b %b %b %b, ",      pc[15:12],         pc[11:8],         pc[7:4],         pc[3:0]);
+            $write("r1data = %b %b %b %b, ",  r1data[15:12],     r1data[11:8],     r1data[7:4],     r1data[3:0]);
+            $write("r2data = %b %b %b %b, ",  r2data[15:12],     r2data[11:8],     r2data[7:4],     r2data[3:0]);
+            $write("result = %b %b %b %b ",   actualALUResult[15:12],     actualALUResult[11:8],     actualALUResult[7:4],     actualALUResult[3:0]);
+            $write("instead of %b %b %b %b ", expectedALUResult[15:12], expectedALUResult[11:8], expectedALUResult[7:4], expectedALUResult[3:0]);
+            
+            pinstr(insn); // pretty-print the instruction
+            $display("");
+            //$finish; // NB: uncomment this to terminate after the first error
+         end
+         
+         #2;
+      end // end while
+      
       // cleanup
       if (gpInFile)  $fclose(gpInFile);
       if (aluInFile)  $fclose(aluInFile);
