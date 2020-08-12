@@ -111,7 +111,7 @@ module test_alu;
          end
       end
       //cla64 tests
-      for (cla64Tests=0; cla64Tests < 40000; cla64Tests=cla64Tests+1) begin
+      for (cla64Tests=0; cla64Tests < 10000; cla64Tests=cla64Tests+1) begin
          ain64 = $urandom;
          bin64 = $urandom;
          cin64 = $urandom % 2;
