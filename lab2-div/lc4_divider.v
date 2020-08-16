@@ -4,6 +4,7 @@
 `default_nettype none
 `define zeroH 16'h0
 `define oneH  16'h1
+`define negOne 16'hFFFF
 `define FH  16'hF
 module lc4_divider(input  wire [15:0] i_dividend,
                    input  wire [15:0] i_divisor,

@@ -18,6 +18,28 @@ module mux2to1_16bit( input wire s, input wire [15:0] a, input wire [15:0] b,
               endcase
            end
 endmodule
+/*  mux8to1_16 bit chooses an input a to h  and sends it to the output y
+*/
+module mux8to1_16bit( input wire[2:0] s, input wire [15:0] a, 
+                      input wire [15:0] b, input wire [15:0] c, 
+                      input wire [15:0] d, input wire [15:0] e, 
+                      input wire [15:0] f, input wire [15:0] g, 
+                      input wire [15:0] h, output reg [15:0] y);
+	always @(a, b, c, d, e, f, g, h, s)
+           begin
+              case (s)
+ 		3'b000   : y = a;
+                3'b001   : y = b;
+                3'b010	 : y = c;
+ 		3'b011   : y = d;
+                3'b100   : y = e;
+                3'b101	 : y = f;
+ 		3'b110   : y = g;
+                default  : y = h;
+              endcase
+           end
+endmodule
+
              
 module mux4to1_16bit( input wire[1:0] s, input wire [15:0] a, 
                       input wire [15:0] b, input wire [15:0] c, 
@@ -50,7 +72,6 @@ module mux4to1_1bit( input wire[1:0] s, input wire  a,
 endmodule
 /*  sext  sign extends.  It uses the least significant N bits and sign extends
  *  them. N must be less than 16.*/
-
 module sext (input wire [15:0] a, output wire [15:0] signExtend);
       // this is the number of bits to take for sign extend
       parameter N = 9;
@@ -62,24 +83,80 @@ module sext (input wire [15:0] a, output wire [15:0] signExtend);
       wire   s = a[N_1];
       assign signExtend = { { pd {s}}, imm};
 endmodule
-
-/*  addSubtract adds or subtracts the two inputs based on the control.
-    s = 0  addition s = 1 subtraction
-*/
-/*module addSubtract(input wire  s,  input wire [15:0] i_r1data, input wire [15:0]
-		i_r2data, output wire[15:0] o_result);
-           
-       reg [15:0] addend;
-       always @(s, i_r2data)
-       begin
-		case(s)
-                1'b0:  addend = i_r2data;
-                1'b1:  addend = ~i_r2data;
-
-        end
-       cla16(.cin(s), .a(i_r1data), .b(addend), .sum(o_result));      
+/*  pad.  It uses the least significant N bits and fills in rest with 0
+ *  N must be less than 16.*/
+module pad (input wire [15:0] a, output wire [15:0] y);
+      // this is the number of bits to take for pad
+      parameter N = 9;
+      localparam N_1 = N -1;
+      wire [N_1:0]   imm;
+      assign imm = a[N_1:0];
+      
+      localparam pd = 16 - N;
+      wire   s = 1'b0;
+      assign y = { { pd {s}}, imm};
 endmodule
- */       
+/*  output oneH, zeroH, or  negOne if a >, = or < b)*/
+module compareUnsigned(input wire [15:0] a, input wire [15:0] b, output
+			wire [15:0] result);
+	wire greaterThan = (a > b);
+        wire lessThan    = (a < b);
+        assign result = greaterThan? `oneH:( lessThan? `negOne:`zeroH);
+endmodule
+
+/*  output oneH, zeroH, or  negOne if a >, = or < b)*/
+module compareSigned(input wire signed [15:0] a, input wire signed [15:0] b, output
+			wire [15:0] result);
+	wire greaterThan = (a > b);
+        wire lessThan    = (a < b);
+        assign result = greaterThan? `oneH:( lessThan? `negOne:`zeroH);
+endmodule
+/* compare ab governed by i_insn (00 CMP, 01 CMPU, 10 CMPI, CMPIU  11)  does
+ * sign extend or padding for immediate operands*/ 
+module compare(input wire[15:0] i_insn, input wire [15:0] a, 
+	input wire  [15:0] b, output wire [15:0] result);
+
+         	wire [15:0]  imm7, uimm7, cmp, cmpu, cmpi, cmpiu;
+                pad   u7 (.a(i_insn), .y(uimm7));
+                defparam u7.N = 7;
+                sext  i7 (.a(i_insn), .signExtend(imm7));
+                defparam i7.N = 7;
+                compareSigned cmp1( .a(a), .b(b), .result(cmp));
+                compareUnsigned cmpu1 (.a(a), .b(b), .result(cmpu));
+                compareSigned cmp2(.a(a), .b(imm7), .result(cmpi));
+                compareUnsigned cmpu2( .a(a), .b(uimm7), .result(cmpiu));
+                mux4to1_16bit   outR( .s(i_insn[8:7]), .a(cmp), .b(cmpu),
+					.c(cmpi), .d(cmpiu), .y(result)); 
+endmodule                
+/* jsr calculates jsrr or jsr based on the instruction. It shifts Imm11 by 4 and
+ * masks the PC for the MSB */      
+module jsr (input  wire [15:0] i_insn,
+               input  wire [15:0]  i_pc,
+               input  wire [15:0]  i_r1data,
+               output wire  [15:0] o_result);
+
+       wire [15:0] pcVal;
+       wire pc = i_pc[15];
+       assign pcVal = { pc,  i_insn[10:0], 4'b0};
+       wire sel  = i_insn[11];
+       mux2to1_16bit m2To1(.s(sel), .a(i_r1data), .b(pcVal), .y(o_result));
+endmodule
+
+/* hiconst calculates hiconst based on the instruction. */      
+module hiconst (input  wire [15:0] i_insn,
+               input  wire [15:0]  i_r1data,
+               output wire  [15:0] o_result);
+
+       assign o_result = { i_insn[7:0], i_r1data[7:0]};
+endmodule
+
+/* trap calculates hiconst based on the instruction. */      
+module trap (input  wire [15:0] i_insn,
+               output wire  [15:0] o_result);
+
+       assign o_result = { 8'h80, i_insn[7:0]};
+endmodule
+
 /*   produce the result of either multiply/divide, and mod;  
      multDvidie is 0 if multiply and 1 if divide
 */
@@ -99,16 +176,14 @@ endmodule
  *  corresponding logical funciotn
 */
 module logicalOps( input wire [15:0] i_insn, input wire[15:0] i_r1data, 
-                   input wire [15:0] i_r2data,
+                   input wire [15:0] i_r2data, input wire [15:0] sextb,
 		   output wire[15:0] o_result);
-      wire [15:0] andprod, orprod, xorprod, sextb, secondInput, notvalue;
+      wire [15:0] andprod, orprod, xorprod,  secondInput, notvalue;
       wire      immediateAND   = i_insn[5]; 
       assign          orprod   = i_r1data | i_r2data;
       assign          notvalue = ~i_r1data;
       assign         xorprod   = i_r1data ^ i_r2data;
       wire      immediateAnd   = i_insn[5]; 
-      sext sextAdd ( .a(i_insn), .signExtend(sextb));
-      defparam      sextAdd.N = 5;
       mux2to1_16bit  selectAndInput(.s(immediateAnd), .a(i_r2data), 
                                     .b(sextb),  .y(secondInput));
       
@@ -150,69 +225,121 @@ module selectInstruction( s,  br, arth, cmp, jsr, log,  ldstr,  rti, const,
                     jmp, hiconst, trap)
            begin
               case (s)
- 		4'b00     : o_result  = br;
-                4'b01     : o_result  = arth;
-                4'b0101   : o_result  = log;
-                4'b1010   : o_result  = shift;
-                default   : o_result  = `zeroH;
+ 		4'b0000     : o_result  = br;
+                4'b0001     : o_result  = arth;
+                4'b0010     : o_result  = cmp;
+                4'b0100     : o_result  = jsr;
+                4'b0101     : o_result  = log;
+                4'b0110     : o_result  = ldstr;
+                4'b0111     : o_result  = ldstr;
+                4'b1010     : o_result  = shift;
+                4'b1100     : o_result  = jmp;
+                4'b1101     : o_result  = hiconst;
+                4'b1000     : o_result  = rti;
+                4'b1001     : o_result  = const;
+                4'b1111     : o_result  = trap; 
+                default     : o_result  = `zeroH;
               endcase
            end
 endmodule
+   
 
 
+/*   AddOutput produce the   output of all operations that use addition;  This
+ *   includes the calculat  ion for the branches, for add, sub, and add immediate,
+ *   ldr, str, jump .  It takes the same inputs as the alu, but just calculates
+ *   the addition.  It chooses the correct A input, b input and c in to do all
+ *   the additions
+*/
+module AddOutput(input  wire [15:0] i_insn,
+               input  wire [15:0]  i_pc,
+               input  wire [15:0]  i_r1data,
+               input  wire  [15:0]  i_r2data,
+               output wire [15:0]   sextImm5,
+               output wire [15:0]  sextImm9, 
+               output wire  [15:0] o_result);
+
+       wire [15:0] aInput, bIn, nb, sextImm6, sextImm11;
+       wire [2:0]  bsel;
+       // a_r1 is 0 if pc is the input 1 if it is r1data.
+       wire       a_r1, sub, immedAdd, arith, jmp, cin;
+       assign a_r1 = i_insn[13] | i_insn[12];
+       // true if load store (or trap), false otherwise
+       assign    arith   = i_insn[13:12] == 2'b01;
+       assign   immedAdd =  arith & i_insn[5];
+       assign   jmp      = i_insn[15];
+       // true if subtraction
+       assign    sub = arith & ( i_insn[5:4] == 2'b01);
+       assign    cin = ~a_r1 | sub;
+       assign   bsel[0] = cin; 
+       assign   bsel[1] = jmp | immedAdd;
+       assign   bsel[2] = arith;
+       mux2to1_16bit aIn( .s(a_r1), .a(i_pc), .b(i_r1data), .y(aInput));
+      // add 1 if there is the pc add 1 or if it is subtraction;
+       
+       //create alternative b inputs.
+     
+       assign nb  = ~i_r2data;
+       sext sextAdd ( .a(i_insn), .signExtend(sextImm5));
+       defparam sextAdd.N = 5;
+       sext im9 (.a(i_insn), .signExtend(sextImm9));
+       defparam im9.N = 9;
+       sext im6 (.a(i_insn), .signExtend(sextImm6));
+       defparam im6.N = 6;
+       sext im11 (.a(i_insn), .signExtend(sextImm11));
+       defparam im11.N = 11;
+       // choose the correct output
+       mux8to1_16bit selectBAdd( .s(bsel), .a(sextImm6), .b(sextImm9),
+		.c(`zeroH), .d(sextImm11), .e(i_r2data), .f(nb), .g(sextImm5), 
+                .h(`zeroH), .y(bIn)); 
+       // here is the one cla16 module needed for add/subtract
+       cla16  addSum(.a(aInput), .b(bIn), .cin(cin), .sum(o_result));
+endmodule   
 
 module lc4_alu(input  wire [15:0] i_insn,
                input  wire [15:0]  i_pc,
                input  wire [15:0]  i_r1data,
                input  wire  [15:0]  i_r2data,
                output wire [15:0] o_result);   
-      
-
-       wire [3:0] op = i_insn[15:12];
-       wire [2:0] func = i_insn[5:3];
-
        // add subtract
-       wire [15:0]   nb, sextb, multab, divab, modab, secondInput, addout, 
-                     arithmetic, Rs, firstInput, logicalOut, shiftOut; 
+       wire [3:0] op = i_insn[15:12];
+       wire [15:0]   multab, divab, modab, sextImm5, sextImm9, addout, 
+                     arithmetic, Rs, firstInput, logicalOut, shiftOut, cmp,
+		     jsrVal, jmp, hiconstVal, trapVal; 
        wire [1:0]    selMultDivide;
        wire         immediateAdd = i_insn[5]; 
        wire          cin;
-       assign nb  = ~i_r2data;
-       sext sextAdd ( .a(i_insn), .signExtend(sextb));
-       defparam sextAdd.N = 5;
-       //assign arithmetic = `zeroH;
+       AddOutput  addRoutines(.i_insn(i_insn),.i_pc(i_pc), .i_r1data( i_r1data),
+                  .i_r2data(i_r2data),  .sextImm5(sextImm5), .sextImm9(sextImm9), .o_result(addout));
        multDivideMod multdiv_mod(.i_r1data(i_r1data), .i_r2data(i_r2data), .multab(multab),
                       .divab(divab), .modab(modab));
-       //choose the correct binput000...
-       mux4to1_16bit selectBAdd( .s(i_insn[5:4]), .a(i_r2data), .b(nb), .c(sextb), 
-                               .d(sextb), .y(secondInput));
-       // choose correct cin
-       mux4to1_1bit cinSel( .s(i_insn[5:4]), .a(i_insn[4]), .b(i_insn[4]),
-                            .c(1'b0),   .d(1'b0), .y(cin));
-       // choose the correct a input;
-       // place holder mux for when we need a different A input
-       mux2to1_16bit selectAadd(.s(1'b0), .a(i_r1data), .b(16'b0),
-       				.y(firstInput));
-       // here is the one cla16 module needed for add/subtract
-       cla16  addSum(.a(firstInput), .b(secondInput), .cin(cin),
-                                                           .sum(addout));
-      
        //  bits 4:3 work select add mult divide subtract except for immediate.
        //  In that case set to 00 so that addout selected.
        assign selMultDivide = i_insn[5]? 2'h0: i_insn[4:3];
        mux4to1_16bit selMultDivideAdd( .s(selMultDivide), .a(addout),
-       		.b(multab), .c(addout), 
-                               .d(divab), .y(arithmetic));
+       		.b(multab), .c(addout),  .d(divab), .y(arithmetic));
 
        // handle the logical possibilities;
        logicalOps logOps (.i_insn(i_insn), .i_r1data(i_r1data), .i_r2data(i_r2data),
-                        .o_result(logicalOut));
+                         .sextb(sextImm5), .o_result(logicalOut));
        // shift operators
        shiftOps   shiftOps1(.i_insn(i_insn), .i_r1data(i_r1data), .mod(modab), 
                                 .o_result(shiftOut)); 
-       selectInstruction sInstr(.s(op), .br(`zeroH), .arth(arithmetic), .cmp(`zeroH),
-		.jsr(`zeroH), .log(logicalOut), .ldstr(`zeroH), .rti(`zeroH),
-		.const(`zeroH), .shift(shiftOut), .jmp(`zeroH), .hiconst(`zeroH), .trap(`zeroH),
+       // comparison operators
+       compare      cmp1( .i_insn(i_insn), .a(i_r1data), .b(i_r2data), .result(cmp));
+       // jsr value
+       jsr        jsr1(.i_insn(i_insn), .i_pc(i_pc), .i_r1data(i_r1data),
+			.o_result(jsrVal));  
+       // jmp/jmpr value
+       wire selJump = i_insn[11];
+       mux2to1_16bit jmpSel(.s(selJump), .a(i_r1data), .b(addout), .y(jmp));
+       hiconst    hiV1(.i_insn(i_insn), .i_r1data(i_r1data),
+				.o_result(hiconstVal));
+       trap      trap1(.i_insn(i_insn), .o_result(trapVal));
+       selectInstruction sInstr(.s(op), .br(addout), .arth(arithmetic), .cmp(cmp),
+		.jsr(jsrVal), .log(logicalOut), .ldstr(addout), .rti(i_r1data),
+		.const(sextImm9), .shift(shiftOut), .jmp(jmp),
+		.hiconst(hiconstVal), .trap(trapVal),
 		.o_result(o_result));
       /*** YOUR CODE HERE ***/
 
