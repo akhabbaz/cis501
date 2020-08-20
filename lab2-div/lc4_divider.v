@@ -1,6 +1,6 @@
-/* TODO: :INSERT NAME AND PENNKEY HERE */
+/* Anton Khabbaz */
 `timescale 1ns / 1ps
-`include "lc4_cla.v"
+//`include "lc4_cla.v"  This is not needed because the make file includes this
 `default_nettype none
 `define zeroH 16'h0
 `define oneH  16'h1

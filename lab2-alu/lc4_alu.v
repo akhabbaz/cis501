@@ -1,7 +1,10 @@
 /* Anton Khabbaz*/
 
 `timescale 1ns / 1ps
-`include "lc4_divider.v" 
+//`include "lc4_divider.v"
+`define zeroH 16'h0
+`define oneH  16'h1
+`define negOne 16'hFFFF
 `default_nettype none
 /*   mux2to1_16bit will choose input based on s, choosing a (s = 0) or b( s =
  *   1)
@@ -71,15 +74,19 @@ module mux4to1_1bit( input wire[1:0] s, input wire  a,
            end
 endmodule
 /*  sext  sign extends.  It uses the least significant N bits and sign extends
- *  them. N must be less than 16.*/
-module sext (input wire [15:0] a, output wire [15:0] signExtend);
+ *  them to a bus width of W.  N must be less than W.*/
+module sext (a, signExtend);
       // this is the number of bits to take for sign extend
       parameter N = 9;
+      parameter W = 16;
       localparam N_1 = N -1;
+      localparam W_1  = W-1;
+      input wire [N_1:0] a;
+      output wire [W_1:0] signExtend;
       wire [N_1:0]   imm;
       assign imm = a[N_1:0];
       
-      localparam pd = 16 - N;
+      localparam pd = W - N;
       wire   s = a[N_1];
       assign signExtend = { { pd {s}}, imm};
 endmodule
@@ -117,9 +124,9 @@ module compare(input wire[15:0] i_insn, input wire [15:0] a,
 	input wire  [15:0] b, output wire [15:0] result);
 
          	wire [15:0]  imm7, uimm7, cmp, cmpu, cmpi, cmpiu;
-                pad   u7 (.a(i_insn), .y(uimm7));
+                pad   u7 (.a(i_insn[6:0]), .y(uimm7));
                 defparam u7.N = 7;
-                sext  i7 (.a(i_insn), .signExtend(imm7));
+                sext  i7 (.a(i_insn[6:0]), .signExtend(imm7));
                 defparam i7.N = 7;
                 compareSigned cmp1( .a(a), .b(b), .result(cmp));
                 compareUnsigned cmpu1 (.a(a), .b(b), .result(cmpu));
@@ -128,33 +135,35 @@ module compare(input wire[15:0] i_insn, input wire [15:0] a,
                 mux4to1_16bit   outR( .s(i_insn[8:7]), .a(cmp), .b(cmpu),
 					.c(cmpi), .d(cmpiu), .y(result)); 
 endmodule                
-/* jsr calculates jsrr or jsr based on the instruction. It shifts Imm11 by 4 and
- * masks the PC for the MSB */      
-module jsr (input  wire [15:0] i_insn,
-               input  wire [15:0]  i_pc,
+/* jsr calculates jsrr or jsr based on the instruction. It shifts Imm by 4 and
+ * masks the PC for the MSB.  imm_ins:lower 11 is immediate, 12th  is
+ * instruction 0 use i_r1data or Rs, 1 means use the immediate and the pc15 to
+ * get the address */      
+module jsr (input  wire [12:0] imm_ins,
+               input  wire   pc15,
                input  wire [15:0]  i_r1data,
                output wire  [15:0] o_result);
 
        wire [15:0] pcVal;
-       wire pc = i_pc[15];
-       assign pcVal = { pc,  i_insn[10:0], 4'b0};
-       wire sel  = i_insn[11];
+       assign pcVal = { pc15,  imm_ins[10:0], 4'b0};
+       wire sel  = imm_ins[11];
        mux2to1_16bit m2To1(.s(sel), .a(i_r1data), .b(pcVal), .y(o_result));
 endmodule
 
-/* hiconst calculates hiconst based on the instruction. */      
-module hiconst (input  wire [15:0] i_insn,
-               input  wire [15:0]  i_r1data,
+/* hiconst calculates hiconst based on the instruction. uimm is the lower 8 bits
+ * of instruction.  Const is the low 8 bits of const */      
+module hiconst (input  wire [7:0] uimm,
+               input  wire [7:0]  const,
                output wire  [15:0] o_result);
 
-       assign o_result = { i_insn[7:0], i_r1data[7:0]};
+       assign o_result = {uimm, const};
 endmodule
 
-/* trap calculates hiconst based on the instruction. */      
-module trap (input  wire [15:0] i_insn,
+/* trap calculates trap value  based on the instruction. */      
+module trap (input  wire [7:0] immediatePC,
                output wire  [15:0] o_result);
 
-       assign o_result = { 8'h80, i_insn[7:0]};
+       assign o_result = { 8'h80, immediatePC};
 endmodule
 
 /*   produce the result of either multiply/divide, and mod;  
@@ -188,7 +197,7 @@ module logicalOps( input wire [15:0] i_insn, input wire[15:0] i_r1data,
                                     .b(sextb),  .y(secondInput));
       
       assign         andprod = i_r1data & secondInput;
-      wire        [2:0] control = immediateAND? 2'b0: i_insn[4:3];
+      wire        [1:0] control = immediateAND? 2'b0: i_insn[4:3];
        //choose the correct signal..
        mux4to1_16bit selectLogical( .s(control), .a(andprod), .b(notvalue),
 				.c(orprod),  .d(xorprod), .y(o_result));
@@ -280,13 +289,13 @@ module AddOutput(input  wire [15:0] i_insn,
        //create alternative b inputs.
      
        assign nb  = ~i_r2data;
-       sext sextAdd ( .a(i_insn), .signExtend(sextImm5));
+       sext sextAdd ( .a(i_insn[4:0]), .signExtend(sextImm5));
        defparam sextAdd.N = 5;
-       sext im9 (.a(i_insn), .signExtend(sextImm9));
+       sext im9 (.a(i_insn[8:0]), .signExtend(sextImm9));
        defparam im9.N = 9;
-       sext im6 (.a(i_insn), .signExtend(sextImm6));
+       sext im6 (.a(i_insn[5:0]), .signExtend(sextImm6));
        defparam im6.N = 6;
-       sext im11 (.a(i_insn), .signExtend(sextImm11));
+       sext im11 (.a(i_insn[10:0]), .signExtend(sextImm11));
        defparam im11.N = 11;
        // choose the correct output
        mux8to1_16bit selectBAdd( .s(bsel), .a(sextImm6), .b(sextImm9),
@@ -328,14 +337,14 @@ module lc4_alu(input  wire [15:0] i_insn,
        // comparison operators
        compare      cmp1( .i_insn(i_insn), .a(i_r1data), .b(i_r2data), .result(cmp));
        // jsr value
-       jsr        jsr1(.i_insn(i_insn), .i_pc(i_pc), .i_r1data(i_r1data),
+       jsr        jsr1(.imm_ins(i_insn[11:0]), .pc15(i_pc[15]), .i_r1data(i_r1data),
 			.o_result(jsrVal));  
        // jmp/jmpr value
        wire selJump = i_insn[11];
        mux2to1_16bit jmpSel(.s(selJump), .a(i_r1data), .b(addout), .y(jmp));
-       hiconst    hiV1(.i_insn(i_insn), .i_r1data(i_r1data),
+       hiconst    hiV1(.uimm(i_insn[7:0]), .const(i_r1data[7:0]),
 				.o_result(hiconstVal));
-       trap      trap1(.i_insn(i_insn), .o_result(trapVal));
+       trap      trap1(.immediatePC(i_insn[7:0]), .o_result(trapVal));
        selectInstruction sInstr(.s(op), .br(addout), .arth(arithmetic), .cmp(cmp),
 		.jsr(jsrVal), .log(logicalOut), .ldstr(addout), .rti(i_r1data),
 		.const(sextImm9), .shift(shiftOut), .jmp(jmp),
