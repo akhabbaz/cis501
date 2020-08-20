@@ -90,18 +90,19 @@ module sext (a, signExtend);
       wire   s = a[N_1];
       assign signExtend = { { pd {s}}, imm};
 endmodule
-/*  pad.  It uses the least significant N bits and fills in rest with 0
- *  N must be less than 16.*/
-module pad (input wire [15:0] a, output wire [15:0] y);
+/*  pad pads the input with zeros.  It uses the least significant N bits and
+ *  pads them to a bus width of W.  N must be less than W.*/
+module pad (a, y);
       // this is the number of bits to take for pad
       parameter N = 9;
-      localparam N_1 = N -1;
-      wire [N_1:0]   imm;
-      assign imm = a[N_1:0];
-      
-      localparam pd = 16 - N;
+      parameter W = 16;
+      localparam N_1 = N - 1;
+      localparam W_1 = W - 1;
+      input wire [N_1:0] a; 
+      output wire [W_1:0] y;
+      localparam pd = W - N;
       wire   s = 1'b0;
-      assign y = { { pd {s}}, imm};
+      assign y = { { pd {s}}, a};
 endmodule
 /*  output oneH, zeroH, or  negOne if a >, = or < b)*/
 module compareUnsigned(input wire [15:0] a, input wire [15:0] b, output
@@ -120,26 +121,26 @@ module compareSigned(input wire signed [15:0] a, input wire signed [15:0] b, out
 endmodule
 /* compare ab governed by i_insn (00 CMP, 01 CMPU, 10 CMPI, CMPIU  11)  does
  * sign extend or padding for immediate operands*/ 
-module compare(input wire[15:0] i_insn, input wire [15:0] a, 
+module compare(input wire[8:0] imm_ins, input wire [15:0] a, 
 	input wire  [15:0] b, output wire [15:0] result);
 
          	wire [15:0]  imm7, uimm7, cmp, cmpu, cmpi, cmpiu;
-                pad   u7 (.a(i_insn[6:0]), .y(uimm7));
+                pad   u7 (.a(imm_ins[6:0]), .y(uimm7));
                 defparam u7.N = 7;
-                sext  i7 (.a(i_insn[6:0]), .signExtend(imm7));
+                sext  i7 (.a(imm_ins[6:0]), .signExtend(imm7));
                 defparam i7.N = 7;
                 compareSigned cmp1( .a(a), .b(b), .result(cmp));
                 compareUnsigned cmpu1 (.a(a), .b(b), .result(cmpu));
                 compareSigned cmp2(.a(a), .b(imm7), .result(cmpi));
                 compareUnsigned cmpu2( .a(a), .b(uimm7), .result(cmpiu));
-                mux4to1_16bit   outR( .s(i_insn[8:7]), .a(cmp), .b(cmpu),
+                mux4to1_16bit   outR( .s(imm_ins[8:7]), .a(cmp), .b(cmpu),
 					.c(cmpi), .d(cmpiu), .y(result)); 
 endmodule                
 /* jsr calculates jsrr or jsr based on the instruction. It shifts Imm by 4 and
  * masks the PC for the MSB.  imm_ins:lower 11 is immediate, 12th  is
  * instruction 0 use i_r1data or Rs, 1 means use the immediate and the pc15 to
  * get the address */      
-module jsr (input  wire [12:0] imm_ins,
+module jsr (input  wire [11:0] imm_ins,
                input  wire   pc15,
                input  wire [15:0]  i_r1data,
                output wire  [15:0] o_result);
@@ -181,23 +182,23 @@ module multDivideMod(input  wire [15:0]  i_r1data,
 		.o_remainder(modab), .o_quotient( divab));
 endmodule
 
-/*  inputs are function controls i_insn, i_r1data, i_r2data, returns
- *  corresponding logical funciotn
+/*  inputs are function controls immediateAnd, i_r1data, i_r2data, and sext5, returns
+ *  corresponding logical function.  ImmediateAnd is a logical level (1)
+ *  indicating immediate And (i_insn[5]), and sext5 if the input is not
+ *  immediateAnd has in wires  4:3 the logic to choose theoutput value.
 */
-module logicalOps( input wire [15:0] i_insn, input wire[15:0] i_r1data, 
-                   input wire [15:0] i_r2data, input wire [15:0] sextb,
+module logicalOps( input wire immediateAnd, input wire[15:0] i_r1data, 
+                   input wire [15:0] i_r2data, input wire [15:0] sext5,
 		   output wire[15:0] o_result);
       wire [15:0] andprod, orprod, xorprod,  secondInput, notvalue;
-      wire      immediateAND   = i_insn[5]; 
       assign          orprod   = i_r1data | i_r2data;
       assign          notvalue = ~i_r1data;
       assign         xorprod   = i_r1data ^ i_r2data;
-      wire      immediateAnd   = i_insn[5]; 
       mux2to1_16bit  selectAndInput(.s(immediateAnd), .a(i_r2data), 
-                                    .b(sextb),  .y(secondInput));
+                                    .b(sext5),  .y(secondInput));
       
       assign         andprod = i_r1data & secondInput;
-      wire        [1:0] control = immediateAND? 2'b0: i_insn[4:3];
+      wire        [1:0] control = immediateAnd? 2'b0: sext5[4:3];
        //choose the correct signal..
        mux4to1_16bit selectLogical( .s(control), .a(andprod), .b(notvalue),
 				.c(orprod),  .d(xorprod), .y(o_result));
@@ -206,15 +207,15 @@ endmodule
 /*  inputs are function controls i_r1, i_r2 data, its inverse; returns
  *  corresponding logical funciotn
 */
-module shiftOps( input wire [15:0] i_insn, input wire[15:0] i_r1data, 
+module shiftOps( input wire [5:0] ins_imm, input wire[15:0] i_r1data, 
                    input wire [15:0] mod,
 		   output wire[15:0] o_result);
     
       wire [15:0] sll, srl;
       wire signed [15:0] sra, i_r1Signed;
       assign i_r1Signed = i_r1data;
-      wire [3:0] uimm4 = i_insn[3:0];
-      wire [1:0] control = i_insn[5:4];
+      wire [3:0] uimm4 = ins_imm[3:0];
+      wire [1:0] control = ins_imm[5:4];
       assign          sll   = i_r1data << uimm4;
       assign          sra   = i_r1Signed >>> uimm4;
       assign          srl   = i_r1data >> uimm4;
@@ -313,7 +314,7 @@ module lc4_alu(input  wire [15:0] i_insn,
        // add subtract
        wire [3:0] op = i_insn[15:12];
        wire [15:0]   multab, divab, modab, sextImm5, sextImm9, addout, 
-                     arithmetic, Rs, firstInput, logicalOut, shiftOut, cmp,
+                     arithmetic, Rs, firstInput, logicalOut, shiftOut, compare,
 		     jsrVal, jmp, hiconstVal, trapVal; 
        wire [1:0]    selMultDivide;
        wire         immediateAdd = i_insn[5]; 
@@ -329,13 +330,13 @@ module lc4_alu(input  wire [15:0] i_insn,
        		.b(multab), .c(addout),  .d(divab), .y(arithmetic));
 
        // handle the logical possibilities;
-       logicalOps logOps (.i_insn(i_insn), .i_r1data(i_r1data), .i_r2data(i_r2data),
-                         .sextb(sextImm5), .o_result(logicalOut));
+       logicalOps logOps (.immediateAnd(i_insn[5]), .i_r1data(i_r1data), .i_r2data(i_r2data),
+                         .sext5(sextImm5), .o_result(logicalOut));
        // shift operators
-       shiftOps   shiftOps1(.i_insn(i_insn), .i_r1data(i_r1data), .mod(modab), 
+       shiftOps   shiftOps1(.ins_imm(i_insn[5:0]), .i_r1data(i_r1data), .mod(modab), 
                                 .o_result(shiftOut)); 
        // comparison operators
-       compare      cmp1( .i_insn(i_insn), .a(i_r1data), .b(i_r2data), .result(cmp));
+       compare      cmp1( .imm_ins(i_insn[8:0]), .a(i_r1data), .b(i_r2data), .result(compare));
        // jsr value
        jsr        jsr1(.imm_ins(i_insn[11:0]), .pc15(i_pc[15]), .i_r1data(i_r1data),
 			.o_result(jsrVal));  
@@ -345,7 +346,7 @@ module lc4_alu(input  wire [15:0] i_insn,
        hiconst    hiV1(.uimm(i_insn[7:0]), .const(i_r1data[7:0]),
 				.o_result(hiconstVal));
        trap      trap1(.immediatePC(i_insn[7:0]), .o_result(trapVal));
-       selectInstruction sInstr(.s(op), .br(addout), .arth(arithmetic), .cmp(cmp),
+       selectInstruction sInstr(.s(op), .br(addout), .arth(arithmetic), .cmp(compare),
 		.jsr(jsrVal), .log(logicalOut), .ldstr(addout), .rti(i_r1data),
 		.const(sextImm9), .shift(shiftOut), .jmp(jmp),
 		.hiconst(hiconstVal), .trap(trapVal),
