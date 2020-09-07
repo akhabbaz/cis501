@@ -3,6 +3,7 @@
 //`include "lc4_cla.v"  This is not needed because the make file includes this
 `default_nettype none
 `define zeroH 16'h0
+`define zeroShort 15'h0
 `define oneH  16'h1
 `define negOne 16'hFFFF
 `define FH  16'hF
@@ -26,7 +27,7 @@ module lc4_divider(input  wire [15:0] i_dividend,
       //size of intermediate and final results
       // first loop initialize 
       lc4_divider_one_iter div0(.i_dividend(i_dividend), .i_divisor(i_divisor),
-		.i_remainder(`zeroH), .i_quotient(`zeroH),
+		.i_remainder(`zeroShort), .i_quotient(`zeroShort),
 		.o_dividend(dividend[N_1:0]), .o_remainder(remainder[N_1:0]),
 		.o_quotient(quotient[N_1:0])); 
       genvar i;
@@ -36,13 +37,13 @@ module lc4_divider(input  wire [15:0] i_dividend,
                localparam   k = i*N;
                localparam  kn = (i+1)*N;
                lc4_divider_one_iter div(.i_dividend(dividend[N_1+ k:k]), 
-                   .i_divisor(i_divisor), .i_remainder(remainder[N_1+ k:k]), 
-                   .i_quotient(quotient[N_1+ k:k]), .o_dividend(dividend[N_1+ kn:kn]), 
+                   .i_divisor(i_divisor), .i_remainder(remainder[N_2+ k:k]), 
+                   .i_quotient(quotient[N_2+ k:k]), .o_dividend(dividend[N_1+ kn:kn]), 
                    .o_remainder(remainder[N_1+ kn:kn]), .o_quotient(quotient[N_1+ kn:kn])); 
             end
       endgenerate
       lc4_divider_one_iter div1(.i_dividend(dividend[stp:srt]), .i_divisor(i_divisor),
-		.i_remainder(remainder[stp:srt]), .i_quotient(quotient[stp:srt]),
+		.i_remainder(remainder[stp-1:srt]), .i_quotient(quotient[stp-1:srt]),
 		.o_dividend(), .o_remainder(o_remainder),
 		.o_quotient(o_quotient)); 
   
@@ -50,8 +51,8 @@ endmodule // lc4_divider
 
 module lc4_divider_one_iter(input  wire [15:0] i_dividend,
                             input  wire [15:0] i_divisor,
-                            input  wire [15:0] i_remainder,
-                            input  wire [15:0] i_quotient,
+                            input  wire [14:0] i_remainder,
+                            input  wire [14:0] i_quotient,
                             output wire [15:0] o_dividend,
                             output reg  [15:0] o_remainder,
                             output reg  [15:0] o_quotient);

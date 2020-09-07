@@ -1,0 +1,63 @@
+
+How to start up zedboard on Linux ubuntu.
+
+
+1. Plug in the power and JTAG input.  The JTag input should flash with the USB
+cable is connected.  If it doesn't replace the cable.  Without this serial
+communication fails.
+
+1a.  To see that the USB is connected you can type:
+dmesg | grep tty
+[    0.176277] printk: console [tty0] enabled
+[    0.826184] serial8250: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    0.846636] serial8250: ttyS1 at I/O 0x2f8 (irq = 3, base_baud = 115200) is a 16550A
+[  176.704994] cdc_acm 3-3:1.0: ttyACM0: USB ACM device
+
+You should see a USB ACM device.  Don't know what the tty S1 S0 devices are but
+they are not external usb devices.  The last has to be ttyACM0.
+
+1b.  The LED display should be powered off before shutting off.  By trial and
+error BTN7 to left of DIgilent display shuts power off of it.  If nothing else
+this will shut off the display.
+
+2. Jumpers are set MO5 M04 set on 3.3 V rest at zero.  Also JP6 is set
+connected.
+
+
+3.  Minicom is the serial port program.  
+
+
+This is described here:
+
+http://zedboard.org/sites/default/files/documentations/GS-AES-Z7EV-7Z020-G-V7-1.pdf
+
+
+
+In the back is the linux set up.
+
+4.  Power on the Zedboard and let it boot up.  Once it is booted up it will
+establish a connection to the tty0 port.  This was set up in minicom earlier.
+
+4a.  Connect a 9 pin serial cable to the main Acer monitor.  Now you can use the
+input button on the bottom to see the digilent output.  This button toggles
+zedborad and main computer.    To get back to computer need to hit this button
+and then hit the space bar of the keyboard.
+
+5. In an open terminal now run minicom.  You will see  help controal A Z and  a
+menu. I already set minicoms parameters so that need not be adjusted.  Now the
+zedboard is connected.
+
+6.  Once minicom is connected can hit enter and get prompt.  boot will reboot
+and now the digilent display lights up.  I get the zynq prompt after command
+boot.
+
+
+
+
+Useful commands
+
+vivado   Starts the vivado IDE
+vivado -mode gui or 
+vivado -mode tcl to get the tcl command prompt
+The gui has a tcl console with more information also works
+docnav   starts the document navigator

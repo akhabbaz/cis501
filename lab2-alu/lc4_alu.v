@@ -259,9 +259,11 @@ endmodule
  *   includes the calculat  ion for the branches, for add, sub, and add immediate,
  *   ldr, str, jump .  It takes the same inputs as the alu, but just calculates
  *   the addition.  It chooses the correct A input, b input and c in to do all
- *   the additions
+ *   the additions.  imm11 is the first 11 bits of the instruction, contol is
+ *   bits 15, 13, 12.
 */
-module AddOutput(input  wire [15:0] i_insn,
+module AddOutput(input  wire [10:0] imm11,
+               input  wire  [2:0]   control,
                input  wire [15:0]  i_pc,
                input  wire [15:0]  i_r1data,
                input  wire  [15:0]  i_r2data,
@@ -273,13 +275,13 @@ module AddOutput(input  wire [15:0] i_insn,
        wire [2:0]  bsel;
        // a_r1 is 0 if pc is the input 1 if it is r1data.
        wire       a_r1, sub, immedAdd, arith, jmp, cin;
-       assign a_r1 = i_insn[13] | i_insn[12];
+       assign a_r1 = control[1] | control[0];
        // true if load store (or trap), false otherwise
-       assign    arith   = i_insn[13:12] == 2'b01;
-       assign   immedAdd =  arith & i_insn[5];
-       assign   jmp      = i_insn[15];
+       assign    arith   = control[1:0] == 2'b01;
+       assign   immedAdd =  arith & imm11[5];
+       assign   jmp      = control[2];
        // true if subtraction
-       assign    sub = arith & ( i_insn[5:4] == 2'b01);
+       assign    sub = arith & ( imm11[5:4] == 2'b01);
        assign    cin = ~a_r1 | sub;
        assign   bsel[0] = cin; 
        assign   bsel[1] = jmp | immedAdd;
@@ -290,13 +292,13 @@ module AddOutput(input  wire [15:0] i_insn,
        //create alternative b inputs.
      
        assign nb  = ~i_r2data;
-       sext sextAdd ( .a(i_insn[4:0]), .signExtend(sextImm5));
+       sext sextAdd ( .a(imm11[4:0]), .signExtend(sextImm5));
        defparam sextAdd.N = 5;
-       sext im9 (.a(i_insn[8:0]), .signExtend(sextImm9));
+       sext im9 (.a(imm11[8:0]), .signExtend(sextImm9));
        defparam im9.N = 9;
-       sext im6 (.a(i_insn[5:0]), .signExtend(sextImm6));
+       sext im6 (.a(imm11[5:0]), .signExtend(sextImm6));
        defparam im6.N = 6;
-       sext im11 (.a(i_insn[10:0]), .signExtend(sextImm11));
+       sext im11 (.a(imm11), .signExtend(sextImm11));
        defparam im11.N = 11;
        // choose the correct output
        mux8to1_16bit selectBAdd( .s(bsel), .a(sextImm6), .b(sextImm9),
@@ -319,7 +321,8 @@ module lc4_alu(input  wire [15:0] i_insn,
        wire [1:0]    selMultDivide;
        wire         immediateAdd = i_insn[5]; 
        wire          cin;
-       AddOutput  addRoutines(.i_insn(i_insn),.i_pc(i_pc), .i_r1data( i_r1data),
+       wire [2:0]    cntrl = {i_insn[15], i_insn[13:12]};
+       AddOutput  addRoutines(.imm11(i_insn[10:0]),.control(cntrl), .i_pc(i_pc), .i_r1data( i_r1data),
                   .i_r2data(i_r2data),  .sextImm5(sextImm5), .sextImm9(sextImm9), .o_result(addout));
        multDivideMod multdiv_mod(.i_r1data(i_r1data), .i_r2data(i_r2data), .multab(multab),
                       .divab(divab), .modab(modab));
