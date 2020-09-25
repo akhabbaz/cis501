@@ -1,0 +1,141 @@
+Here is a command to upgrade clk_core in the vivado ip tutorial (Lab 1).
+upgrade_ip -srcset clk_core -vlnv xilinx.com:ip:clk_wiz:6.0 [get_ips  clk_core]
+-log ip_upgrade.log
+
+
+OK I managed to upgrade the IP and here is what I did.
+
+1.  I ran make synth and looked at the output.  After files are written to
+hidden files, it runs vivado in batch mode using the source file in build.tcl in
+the tcl directory.  Now instead of running this in batch mode (which works) I
+wanted to single step through this.  
+
+1.  I cd to the lab2-alu director and ran the commands one at a time in the
+directory.
+
+
+I started vivado.  vivado -mode tcl.
+
+Then I ran the first few commands
+
+
+set outputDir ./output
+file mkdir $outputDir
+
+# read the contents of a file and return it as a string
+proc get_file_contents { filename } {
+    if {[catch {
+        set FH [open $filename r]
+        set content [read $FH]
+        close $FH
+    } errorstring]} {
+        error " File $filename could not be opened : $errorstring "
+    }
+    return $content
+}
+
+if {[get_file_contents .step] == "synthesis"} { # just doing synthesis
+    read_verilog [get_file_contents .synthesis-source-files]
+} else { # going all the way to implementation
+    read_verilog [get_file_contents .implementation-source-files]
+}
+
+
+# Need to set_part so that IP blocks work correctly
+# https://forums.xilinx.com/t5/Vivado-TCL-Community/project-part-don-t-match-when-run-tcl-command/td-p/440404
+set_part xc7z020clg484-1
+
+# only add IP blocks if there are any
+if { [string length [get_file_contents .ip-blocks]] > 0 } {
+    read_ip [get_file_contents .ip-blocks]
+
+
+Because the batch file was run, files .ip-blocks .step etc exist.  
+
+
+Now get_ips returns the names of the three ip blocks.
+ upgrade_ip  -log upgradeIP.log [get_ips charLib]
+
+
+
+Upgrading 'charLib'
+INFO: [IP_Flow 19-3422] Upgraded charLib (Block Memory Generator 8.4) from revision 1 to revision 4
+INFO: [IP_Flow 19-1686] Generating 'Instantiation Template' target for IP 'charLib'...
+INFO: [Coretcl 2-1525] Wrote upgrade log to './upgradeIP.log'.
+/home/antonk/Documents/cis501/lab2-alu/system/ip/charLib/charLib.xci
+Vivado% get_ips
+charLib init_sequence_rom pixel_buffer
+
+
+
+Vivado% upgrade_ip  -log upgradeIP.log [get_ips]
+
+
+Upgrading 'init_sequence_rom'
+INFO: [IP_Flow 19-3422] Upgraded init_sequence_rom (Block Memory Generator 8.4) from revision 1 to revision 4
+INFO: [IP_Flow 19-1686] Generating 'Instantiation Template' target for IP 'init_sequence_rom'...
+Upgrading 'pixel_buffer'
+INFO: [IP_Flow 19-3422] Upgraded pixel_buffer (Block Memory Generator 8.4) from revision 1 to revision 4
+INFO: [IP_Flow 19-1686] Generating 'Instantiation Template' target for IP 'pixel_buffer'...
+INFO: [Coretcl 2-1525] Wrote upgrade log to './upgradeIP.log'.
+/home/antonk/Documents/cis501/lab2-alu/system/ip/init_sequence_rom/init_sequence_rom.xci /home/antonk/Documents/cis501/lab2-alu/system/ip/pixel_buffer/pixel_buffer.xci
+
+These commands actually rewrote the xci files in the required directories.
+
+Now make synth actually works.  Those IPs are not locked like before.
+
+The old output:
+
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1704] No user IP repositories specified
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository '/opt/Xilinx/Vivado/2019.2/data/ip'.
+CRITICAL WARNING: [filemgmt 20-1365] Unable to generate target(s) for the following file is locked: /home/antonk/Documents/cis501/lab2-alu/system/ip/charLib/charLib.xci
+Locked reason: 
+* IP definition 'Block Memory Generator (8.4)' for IP 'charLib' (customized with software release 2017.4) has a different revision in the IP Catalog.
+CRITICAL WARNING: [filemgmt 20-1365] Unable to generate target(s) for the following file is locked: /home/antonk/Documents/cis501/lab2-alu/system/ip/init_sequence_rom/init_sequence_rom.xci
+Locked reason: 
+* IP definition 'Block Memory Generator (8.4)' for IP 'init_sequence_rom' (customized with software release 2017.4) has a different revision in the IP Catalog.
+CRITICAL WARNING: [filemgmt 20-1365] Unable to generate target(s) for the following file is locked: /home/antonk/Documents/cis501/lab2-alu/system/ip/pixel_buffer/pixel_buffer.xci
+Locked reason: 
+* IP definition 'Block Memory Generator (8.4)' for IP 'pixel_buffer' (customized with software release 2017.4) has a different revision in the IP Catalog.
+# if {[get_file_contents .step] == "synthesis"} { # just doing synthesis
+#     synth_design -top [get_file_contents .top-synth-module] -part xc7z020clg484-1
+
+
+critical warnings mean trouble....
+
+the new output:
+
+
+# 
+#     # generate synthesis targets for IP blocks, so they will get synthesized by synth_design below
+#     if { [llength [get_ips]] > 0 } {
+#         generate_target all [get_ips]
+#         #synth_ip [get_ips charLib init_sequence_rom pixel_buffer] # <- doesn't work for some reason
+#     }
+# }
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1704] No user IP repositories specified
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository '/opt/Xilinx/Vivado/2019.2/data/ip'.
+INFO: [IP_Flow 19-1686] Generating 'Synthesis' target for IP 'charLib'...
+INFO: [IP_Flow 19-1686] Generating 'Simulation' target for IP 'charLib'...
+INFO: [IP_Flow 19-1686] Generating 'Miscellaneous' target for IP 'charLib'...
+INFO: [IP_Flow 19-1686] Generating 'Change Log' target for IP 'charLib'...
+INFO: [IP_Flow 19-1686] Generating 'Synthesis' target for IP 'init_sequence_rom'...
+INFO: [IP_Flow 19-1686] Generating 'Simulation' target for IP 'init_sequence_rom'...
+INFO: [IP_Flow 19-1686] Generating 'Miscellaneous' target for IP 'init_sequence_rom'...
+INFO: [IP_Flow 19-1686] Generating 'Change Log' target for IP 'init_sequence_rom'...
+INFO: [IP_Flow 19-1686] Generating 'Synthesis' target for IP 'pixel_buffer'...
+INFO: [IP_Flow 19-1686] Generating 'Simulation' target for IP 'pixel_buffer'...
+INFO: [IP_Flow 19-1686] Generating 'Miscellaneous' target for IP 'pixel_buffer'...
+INFO: [IP_Flow 19-1686] Generating 'Change Log' target for IP 'pixel_buffer'...
+# if {[get_file_contents .step] == "synthesis"} { # just doing synthesis
+#     synth_design -top [get_file_contents .top-synth-module] -part xc7z020clg484-1
+# 
+# } else { # going all the way to implementation instead
+#     if {[get_file_contents .top-impl-module] == ""} {
+#         error "This design has no top-level module defined for implementation. It can only be run through synthesis."
+
+Synthesized....
+
+

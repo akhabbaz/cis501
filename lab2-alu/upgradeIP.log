@@ -1,0 +1,58 @@
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2019.2.1 (lin64) Build 2729669 Thu Dec  5 04:48:12 MST 2019
+| Date         : Wed Sep 23 14:46:37 2020
+| Host         : antona-MS-7A20 running 64-bit Ubuntu 18.04.5 LTS
+| Command      : upgrade_ip
+| Device       : xc7z020clg484-1
+--------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'pixel_buffer'
+
+1. Summary
+----------
+
+SUCCESS in the upgrade of pixel_buffer (xilinx.com:ip:blk_mem_gen:8.4) from (Rev. 1) to (Rev. 4)
+
+
+
+
+
+
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2019.2.1 (lin64) Build 2729669 Thu Dec  5 04:48:12 MST 2019
+| Date         : Wed Sep 23 14:46:37 2020
+| Host         : antona-MS-7A20 running 64-bit Ubuntu 18.04.5 LTS
+| Command      : upgrade_ip
+| Device       : xc7z020clg484-1
+--------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'init_sequence_rom'
+
+1. Summary
+----------
+
+SUCCESS in the upgrade of init_sequence_rom (xilinx.com:ip:blk_mem_gen:8.4) from (Rev. 1) to (Rev. 4)
+
+
+
+
+
+
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2019.2.1 (lin64) Build 2729669 Thu Dec  5 04:48:12 MST 2019
+| Date         : Wed Sep 23 14:42:35 2020
+| Host         : antona-MS-7A20 running 64-bit Ubuntu 18.04.5 LTS
+| Command      : upgrade_ip
+| Device       : xc7z020clg484-1
+--------------------------------------------------------------------------------------
+
+Upgrade Log for IP 'charLib'
+
+1. Summary
+----------
+
+SUCCESS in the upgrade of charLib (xilinx.com:ip:blk_mem_gen:8.4) from (Rev. 1) to (Rev. 4)
+
