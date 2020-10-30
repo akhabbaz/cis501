@@ -1,0 +1,141 @@
+﻿Here is the example of a recursive program in MIPS  from 2.8 Patterson and Hennesy
+
+
+fact:   slti   $t0, $a0, 1   #  test if ao < 1 
+          bne $t0, $zero,   Over    # if Over end
+          #  now store $ra, $a0 on stack
+   3    addi  $sp, $sp, -8     #  store ra, a0 on stack
+   4     sw    $a0,   0($sp) 
+   5     sw    $ra,    4($sp)
+          addi   $a0, $a0, -1   
+          jal     fact       # call fact recursively
+          lw      $a0  0($sp)
+          lw       $ra  4($sp)
+          addi      $sp, $sp, 8   # restore stack
+          mult      $vo, $vo, $a0
+           jr          $ra
+    
+
+
+
+
+
+Over:  addi $v0,  $zero, 1     #this routine is one
+           jr      $ra
+
+
+This was nearly perfect.   Only issue was sw, lw were reversed.  P+H also put instr 3-5 before bne
+
+
+
+
+2.8  Next example:
+
+accumulator
+
+
+  loop:    slti   $t0, $zero, $a0
+              beq  $t0, $zero,  endL
+              addi $a1, $a1, $a0
+              addi $a0, $a0, -1
+              j  Loop
+
+
+
+
+endL:      add  $v0,  $a1, $zero
+            jr       $ra
+
+works fin
+
+
+StrCopy
+
+2.9
+
+# #a0  is x[]  #a1 is y[]
+
+   
+ 	addi  $sp, $sp, -4   #  make room on stack for s0
+        sw    $s0  0($sp)    #   exercise in keeping using stack could 
+			     #   store in $t0
+              add  $s0, $zero, $zero  # initialize $s0
+Loop:  add    $t1  $s0, $a1   get index of byte in memory. no x4 multiply byte 
+       lbu    $t2   0($t1) 
+       add    $t3  $s0, $a0
+       sbu    $t2   $0($t3)
+       beq    $t2, $zero, exit
+       addi   $s0, $s0, 1
+       j      Loop
+
+
+exit:   lw     $s0, 0($sp)
+       addi   $sp, $sp, 4
+       jr     $ra
+
+This one got the idea but forgot return statement
+
+
+
+Constants
+
+
+load an immediate constant into register s0
+
+
+lui    $s0,      61   # puts zeros in the lower register
+ori   $s0, $s0,    2304    
+
+Here we don't want addi because that does sign extension.  We want ori because
+that does not do sign extension.
+
+
+
+
+Loop in machine language:
+
+
+Loop:  sll $t1, $s3, 2     # temp reg $t1 = 4* i  
+       add $t1, $t1, $s6   # $t1 = address of save[i]
+       lw  $t0, 0($t1)     # temp = reg $t[ = save[i] 
+       bne $t0, $s5, EXit  # go to Exit if save[i] not equal to k
+       addi $s3,  $s3, 1   # i = i + 1
+       j   Loop
+Exit :
+
+
+instruction format:
+  R   op (6 b), rs(5 b), rt(5 b), rd(5 bits), shamt (5),   funct(6) 
+  I   op (6 b), rs(5 b), rt(5 b),  const (16 bits)
+  J   op (6 b), const (26 bits)
+  t0   8
+  s0   16
+
+80000:R, 0, 0  , 19  , 9, 2, 0
+80004:R, 0, 9, 22, 9, 0, 32
+80008:I, 35, 9, 8, 0
+80012:I, 5, 8, 21, 2  #  rs, rt destination, 8 is Exit - (pc + 4)
+80016:I, 8, 19, 19, 1
+80020:J, 20000
+80024:.....
+8000   0,     
+
+
+code:  bne   rs, rt,  
+the counting for branches and jumps use word not bytes so addresses are 4 times
+smaller 
+
+
+
+Check yourself
+:   2.10
+
+1 conditional branches have 16 bits or 64K states.  jumps are written in 4 byte
+increments so that gets you to 256K.  Half are positive half negative therefore
+answer 4 is correct.
+
+
+2.  Similar reasoning.  Now we have 256 M instead of 256 K.  Number 4 is
+correct.
+
+3.  SLL from the table. 
