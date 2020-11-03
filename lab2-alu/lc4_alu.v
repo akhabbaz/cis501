@@ -354,6 +354,5 @@ module lc4_alu(input  wire [15:0] i_insn,
 		.const(sextImm9), .shift(shiftOut), .jmp(jmp),
 		.hiconst(hiconstVal), .trap(trapVal),
 		.o_result(o_result));
-      /*** YOUR CODE HERE ***/
 
 endmodule
