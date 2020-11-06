@@ -242,11 +242,11 @@ module selectInstruction( s,  br, arth, cmp, jsr, log,  ldstr,  rti, const,
                 4'b0101     : o_result  = log;
                 4'b0110     : o_result  = ldstr;
                 4'b0111     : o_result  = ldstr;
+                4'b1000     : o_result  = rti;
+                4'b1001     : o_result  = const;
                 4'b1010     : o_result  = shift;
                 4'b1100     : o_result  = jmp;
                 4'b1101     : o_result  = hiconst;
-                4'b1000     : o_result  = rti;
-                4'b1001     : o_result  = const;
                 4'b1111     : o_result  = trap; 
                 default     : o_result  = `zeroH;
               endcase
