@@ -56,11 +56,12 @@ module lc4_divider_one_iter(input  wire [15:0] i_dividend,
                             output wire [15:0] o_dividend,
                             output reg  [15:0] o_remainder,
                             output reg  [15:0] o_quotient);
-       wire [15:0] rem, newRem;
+       wire [15:0] rem, newRem, quotientShift;
        assign  rem  = (i_remainder << `oneH) | 
 	     			(i_dividend>> `FH) & `oneH;
-       cla16Sub claSub(.a(rem), .b(i_divisor), .d(newRem)); 
-       always @(i_dividend, i_quotient, i_divisor, i_remainder, rem, newRem)
+       cla16Sub claSub(.a(rem), .b(i_divisor), .d(newRem));
+       assign quotientShift = i_quotient << `oneH; 
+       always @(quotientShift, i_divisor, i_remainder, rem, newRem)
        begin 
            if ( i_divisor == `zeroH) 
                begin
@@ -71,12 +72,12 @@ module lc4_divider_one_iter(input  wire [15:0] i_dividend,
                begin
                  if ( rem < i_divisor)
            	     begin
-              	       o_quotient  = i_quotient << `oneH;
+              	       o_quotient  = quotientShift;
                        o_remainder = rem;
                      end
                  else
                      begin
-              	       o_quotient  = i_quotient << `oneH | `oneH;
+              	       o_quotient  = quotientShift | `oneH;
                        o_remainder = newRem;
                      end
                end
