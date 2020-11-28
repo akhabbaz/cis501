@@ -1,0 +1,33 @@
+Text comments
+2.5   comment to take the compliment, take the dual and complement each literal.
+
+This is true because
+
+(AB)'  = A' + B'   and (A+B)' = A' * B' by deMorgan's Theorem
+
+If A and B are both simple literals it certainly works.  Also works for (ABC)'.
+If any of them is complex applying Demorgans once would lead to a simplification
+where C (say is complex is isolated), so now we would have C'.  Applying again
+the dual formula would work and would break up C into simple literals and the
+conjugate of a complex term.  Breaking up C would mean taking the dual and
+complimenting each literal.  This will keep working until there are no complex
+terms left.
+complex
+
+
+sum of minterms
+2.6
+
+consider nor
+
+a = 0, b = 0 , f (out) = 0  other cases f(out) = 1 (or gate)
+
+f' = a' * b'   f' is true low only when both a and b are true (low)i
+
+
+product of max terms:
+
+The only way for a function to be 1 is if all the zero producing terms fail.
+
+(x+y+z) *.....  f1.  If all are zero the first maxterm is 0 so the product will
+be zero 

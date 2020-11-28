@@ -89,7 +89,8 @@ module lc4_decoder(input  wire [15:0] insn,               // instruction
    assign wsel = (is_jsr | is_jsrr | is_trap) ? 3'd7 : insn[11:9];  /*rd*/
 
    assign regfile_we = is_arith | is_jsr | is_jsrr | is_logic | is_ldr | is_const | is_shift | is_hiconst | is_trap;
-   assign nzp_we = regfile_we | is_compare;
+   assign nzp_we = regfile_we | is_compare;// not clear to me why regfile_we is
+					   // included here 
    assign select_pc_plus_one = is_trap | is_jsrr | is_jsr;
    assign is_load = is_ldr;
    assign is_store = is_str;
