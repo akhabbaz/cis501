@@ -28,6 +28,12 @@ module test_processor;
    reg rst;
    wire [15:0] cur_insn;
    wire [15:0] cur_dmem_data;
+   // my test:
+   integer myval = 2**2;
+   wire   [1:0] two;
+   wire     testEqual;
+   assign two = 2'b00;
+   assign testEqual = (two == 2**2)? 1:0;
 
    // Outputs
    wire [15:0] cur_pc;
@@ -128,6 +134,8 @@ module test_processor;
       num_branch_stall = 0;
       num_load_stall = 0;
       file_status = 10;
+      // my addition
+      $display("Two:  %h; myval: %d; testEqual: %d", two, myval, testEqual);
 
       // open the test inputs
       input_file = $fopen(`INPUT_FILE, "r");

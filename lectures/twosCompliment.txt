@@ -1,0 +1,51 @@
+Two's Compliment
+
+
+Two's compliment is a way of preserving subtraction in binary.  It maps binary
+numbers into negative by adding 2**n, where n is the number of digits.  
+
+Elementary subtraction:
+
+
+	 1000
+	-0111
+	------
+	 0001
+
+Say we want to represent  -7: 0 -7 = -7
+
+	 0000
+	-0111
+
+here we borrow 2**4.
+	10000
+	-0111
+	-----
+         1001  ie -7.
+
+Another way to think of this is that the first digit represents -2**3 and the
+rest represent positive digits (ie.  2**0 here).  Adding more negative digits to
+the left hand side changes the digit representation but not the number.
+ie  adding one more digit, the above number is 11001. or -2**4 + 2**3 + 2**0=
+2**3(-2+1) + 2**0 = -2**3 + 2**0.
+
+The smallest representative number is 1000
+	10000
+	-1000  (0-8= -8)
+	-----
+	 1000 (-8).
+
+All negative numbers have a 1 in the most significant digit.
+
+Rule to get a negative number:
+To negate a number, the lsb 0s remain as with the lsb 1 and the rest flip 0 <->
+1.    Can always subtract it from 2**n + 0.  To figure out what a negative number is, subtract it from 0 or follow rule above.
+
+
+Overflow
+
+for a positive number overflow happens for an n digit binary number when sum of
+two numbers is greater than 2**(n-1). For negative numbers the sum has to be
+greater than 2**(n-1) -1.  Positive + positive overflow, negative + negative
+could overflow.  For subtraction take two's complement of subtrahend (A -B, B
+here)

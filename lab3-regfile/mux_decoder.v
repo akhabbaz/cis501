@@ -96,4 +96,45 @@ module multiplex (sel, in, out);
     defparam   muxSel.s = s;
     defparam   muxSel.n = n;
 endmodule
+
+
+/*Merge2 will merge two inputs into a larger bus. Inputs are concatenated from
+ * lowest (a)  to highest (b). */
+module merge2(a, b, out);
+	parameter n = 16;
+  	localparam max = 2*n;
+	input wire  [n-1:0] a;
+	input wire  [n-1:0] b;
+	output wire [max -1:0] out;
+        assign out = {a, b};
+endmodule
     
+/* Merge4 will merge inputs into a larger bus. Inputs are concatenated from
+ * lowest (a) to highest (d). */
+module merge4(a, b, c, d,  out);
+	parameter n = 16;
+  	localparam max = 4*n;
+	input wire  [n-1:0] a;
+	input wire  [n-1:0] b;
+	input wire  [n-1:0] c;
+	input wire  [n-1:0] d;
+	output wire [max -1:0] out;
+        assign out = {a, b, c, d};
+endmodule
+    
+/* Merge8 will merge inputs into a larger bus. Inputs are concatenated from
+ * lowest (a) to highest (h). */
+module merge8(a, b, c, d, e, f, g, h, out);
+	parameter n = 16;
+  	localparam max = 8*n;
+	input wire  [n-1:0] a;
+	input wire  [n-1:0] b;
+	input wire  [n-1:0] c;
+	input wire  [n-1:0] d;
+	input wire  [n-1:0] e;
+	input wire  [n-1:0] f;
+	input wire  [n-1:0] g;
+	input wire  [n-1:0] h;
+	output wire [max -1:0] out;
+        assign out = {a, b, c, d, e, f, g, h};
+endmodule

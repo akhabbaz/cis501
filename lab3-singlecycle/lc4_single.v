@@ -1,4 +1,4 @@
-/* TODO: name and PennKeys of all group members here
+/* Anton Khabbaz
  *
  * lc4_single.v
  * Implements a single-cycle data path
@@ -9,7 +9,29 @@
 
 // disable implicit wire declaration
 `default_nettype none
+/* lc4_branch decides whether the branch should be taken.  It considers the nzp
+ * bits and the instruction bits. */
+module lc4_branch( input wire [2:0] insnbr,   // instruction bits
+		   input wire [2:0]  nzp,     // input from nzp register
+		     output wire takeBranch); // true if branch should be taken
+   wire [3:0] insnbr4, nzp4;
+   assign insnbr4 = { 1'b0, insnbr};
+   assign nzp4    = { 1'b0, nzp};
+   mux_hotwire mhw(.hotwire(insnbr4), .in(nzp4), .out(takeBranch));
+   defparam mhw.s = 2;
+   defparam mhw.n = 1;
+endmodule 
+/* lc4_nzp reduces the 16 bits alu output to three bits negative true, zero true
+ * or positive true.  Here we take all the bits and treat it as a signed number.
+ * This way if another operation that writes to the register file is used for
+ * the comparison, the nzp register will still be correct. */
+module lc4_nzp( input wire [15:0] cmp,  // the compare signal output of ALU
+                 output wire [2:0] nzp); // neg, zero, pos true
 
+    assign nzp[2] = cmp[15]; // negative
+    assign nzp[1] = ~|cmp;  // zero
+    assign nzp[0] = ~cmp[15] & (|cmp[14:0]);// positive
+endmodule
 module lc4_processor
    (input  wire        clk,                // Main clock
     input  wire        rst,                // Global reset

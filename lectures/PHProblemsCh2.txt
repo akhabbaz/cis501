@@ -1,0 +1,630 @@
+﻿Here is the example of a recursive program in MIPS  from 2.8 Patterson and Hennesy
+
+
+fact:   slti   $t0, $a0, 1   #  test if ao < 1 
+          bne $t0, $zero,   Over    # if Over end
+          #  now store $ra, $a0 on stack
+   3    addi  $sp, $sp, -8     #  store ra, a0 on stack
+   4     sw    $a0,   0($sp) 
+   5     sw    $ra,    4($sp)
+          addi   $a0, $a0, -1   
+          jal     fact       # call fact recursively
+          lw      $a0  0($sp)
+          lw       $ra  4($sp)
+          addi      $sp, $sp, 8   # restore stack
+          mult      $vo, $vo, $a0
+           jr          $ra
+    
+
+
+
+
+
+Over:  addi $v0,  $zero, 1     #this routine is one
+           jr      $ra
+
+
+This was nearly perfect.   Only issue was sw, lw were reversed.  P+H also put instr 3-5 before bne
+
+
+
+
+2.8  Next example:
+
+accumulator
+
+
+  loop:    slti   $t0, $zero, $a0
+              beq  $t0, $zero,  endL
+              addi $a1, $a1, $a0
+              addi $a0, $a0, -1
+              j  Loop
+
+
+
+
+endL:      add  $v0,  $a1, $zero
+            jr       $ra
+
+works fin
+
+
+StrCopy
+
+2.9
+
+# #a0  is x[]  #a1 is y[]
+
+   
+ 	addi  $sp, $sp, -4   #  make room on stack for s0
+        sw    $s0  0($sp)    #   exercise in keeping using stack could 
+			     #   store in $t0
+              add  $s0, $zero, $zero  # initialize $s0
+Loop:  add    $t1  $s0, $a1   get index of byte in memory. no x4 multiply byte 
+       lbu    $t2   0($t1) 
+       add    $t3  $s0, $a0
+       sbu    $t2   $0($t3)
+       beq    $t2, $zero, exit
+       addi   $s0, $s0, 1
+       j      Loop
+
+
+exit:   lw     $s0, 0($sp)
+       addi   $sp, $sp, 4
+       jr     $ra
+
+This one got the idea but forgot return statement
+
+
+
+Constants
+
+
+load an immediate constant into register s0
+
+
+lui    $s0,      61   # puts zeros in the lower register
+ori   $s0, $s0,    2304    
+
+Here we don't want addi because that does sign extension.  We want ori because
+that does not do sign extension.
+
+
+
+
+Loop in machine language:
+
+
+Loop:  sll $t1, $s3, 2     # temp reg $t1 = 4* i  
+       add $t1, $t1, $s6   # $t1 = address of save[i]
+       lw  $t0, 0($t1)     # temp = reg $t[ = save[i] 
+       bne $t0, $s5, EXit  # go to Exit if save[i] not equal to k
+       addi $s3,  $s3, 1   # i = i + 1
+       j   Loop
+Exit :
+
+
+instruction format:
+  R   op (6 b), rs(5 b), rt(5 b), rd(5 bits), shamt (5),   funct(6) 
+  I   op (6 b), rs(5 b), rt(5 b),  const (16 bits)
+  J   op (6 b), const (26 bits)
+  t0   8
+  s0   16
+
+80000:R, 0, 0  , 19  , 9, 2, 0
+80004:R, 0, 9, 22, 9, 0, 32
+80008:I, 35, 9, 8, 0
+80012:I, 5, 8, 21, 2  #  rs, rt destination, 8 is Exit - (pc + 4)
+80016:I, 8, 19, 19, 1
+80020:J, 20000
+80024:.....
+8000   0,     
+
+
+code:  bne   rs, rt,  
+the counting for branches and jumps use word not bytes so addresses are 4 times
+smaller 
+
+
+
+Check yourself
+:   2.10
+
+1 conditional branches have 16 bits or 64K states.  jumps are written in 4 byte
+increments so that gets you to 256K.  Half are positive half negative therefore
+answer 4 is correct.
+
+
+2.  Similar reasoning.  Now we have 256 M instead of 256 K.  Number 4 is
+correct.
+
+3.  SLL from the table. 
+
+
+
+
+
+Dynamically linked libraries.
+
+My understanding. Figure 2.22
+
+(a)  Start out at the top.  jal loads a procedure.  get to lw  and that points
+to a data location.  Now that data is non local so it goes to a linked list of
+nonlocal data. This code (text) puts a number in a register that identifies the
+appropriate library routine. This then jumps to the dynamic linker/loader code.
+This linker loader finds the desired routine and then remaps it and changes the
+address of the indirect jump.  When the DLL completes it jr to the original
+code.  Next time the indirect location is mapped (the address is changed in the
+loaded code so next time the dynamic linker does not need to be called and the
+return address jr is correct to get back to the original code.
+a dynamic linker/loader routine
+
+
+
+2.22 Exercises:
+
+
+2.1
+let 
+
+$s0-2   f, g, h respectively
+
+addi $t0, $s2, -5   # h-5,  -5 = 0xFFF11
+add, $s0, $s1, $t0   # add $t0 + g
+2.2
+
+f = i + g + h
+
+2.3
+
+sub $t0, $s3, $s4  # $t0 = i -j
+addi $t1, $zero, 4 # put 4 in a register
+sll  $t1, $t0, 4   # $t1 = 4 (i -j)
+add $t2, $s6,  $ti   # compute address of the data 
+lw   $t2, 0($t1) # load A[$t1] in $t1
+sw   $t2, 32($s7) # store $t1 is B[8]
+
+
+2.4
+
+B[g] = A[f] + A[f+1]
+2.5
+
+I can't see how to reduce the set of instructions for this command.
+The first 4 instructions basically get &A[f] and &B[g]. Instr 5 loads A[f].
+
+
+Ok  Here is a way to reduce the number of instructions.
+
+sll $t0, $s0, 2
+add $t0, $s6, $t0  # $t0 = &A[f]
+sll $t1, $s1, 2
+add $t1, $s7, $t1  # $t1 = &B[g]
+lw  $s0, 0($t0)    # f = A[f]
+lw  $t2, 4($t0)    # $t2 = A[f+1]  # Here is where we save an instruction. This
+		   # was two instructions previously.  Lw has room for an
+		   # address, the 4 in this case. $t2 is free.
+add $t0, $t2, $s0  # $t0 = A[f] + A[f+1]
+sw  $t0, 0($t1)    # B[g] = A[f] + A[f+1]
+  
+
+2.6
+
+1. C code to sort an array
+// this version uses that temp holds the new unsorted value; this saves time
+// because the swap only has to transfer the old value up one; each j loop skips
+// instruction A[j] = temp.   Also temp gets
+// loaded once per i loop, not once per j loop.  The while breaks the j loop
+// once temp is greater than or equal Array[j], so on average saves steps. 
+const int length = 5; # $a1
+int  Array[] = {2, 4, 3, 6, 1}; #Array   $a0
+
+for (int i = 1; i < length; i++) {
+         int j = i -1;
+         int temp = Array[i];
+         while ( j >= 0 && temp < Array[j]) {
+                  Array[j + 1] = Array[j];
+                  // Array[j] = temp is skipped each loop.
+                  j = j -1;
+		}
+         Array[j+1] = temp;// in all cases put back temp into array
+         }
+}
+
+This code uses branches etc.  It requires branches taught in later sections.
+
+int A[] = {2, 4, 3, 6, 1}
+1.  int last  = A[4];
+2.       A[4] = A[3];
+3.       A[3] = A[1];
+4.       A[1] = A[0];
+5.       A[0] = last;
+
+2.6.2
+
+let A = $s6
+
+lw  $t0, 16($s6) // 1.   
+lw  $t1, 12($s6) // 2.
+sw  $t1, 16($s6) // 2.
+lw  $t1, 4($s6)  // 3.
+sw  $t1, 12($s6)  // 3. 
+lw  $t1, 0($s6)  // 4.
+sw  $t1, 4($s6)  // 4
+sw  $t0, 0($s6)  // 5.
+
+2.7
+
+value 0xabcdef12
+little Endian
+address	byte
+0	12
+1	ef
+2	cd
+3	ab
+lowest byte 0 has smallest value
+
+Big Endian
+address	byte
+0	ab
+1	cd
+2	ef
+3	12
+Here you can read the value starting at the lowest address.  Mips is Big Endian.
+Little Endian has an advantage for casts. For example if you want only 16 bits,
+0x ef12,
+in little Endian you would need only to take the first 16 bits in address 0, 1.
+In Big Endian you would need to move bytes 2, 3 into a new location. 
+
+2.8 translate 0xabcdef12 into decimal.
+
+number is 
+
+digit	Power16	hexdigit
+2	0	2
+1	1	1
+15	2	f
+14	3	e
+13	4	d
+12	5	c
+11	6	b
+10	7	a
+2882400018  in decimal.  Used calculator for product above.  Also converted with
+hex function.
+
+2.9
+
+translate B[8] = A[i] + A[j]
+f, g, h, i, j,  are in $s0, $s1, $s2, $s3, $s4
+A, B are in $s6, $s7
+sll  $t0, $s4, 2  // j*4
+add  $t1, $s6, $t0  // addr A[j]
+lw   $t2, 0($t1)    // A[j]
+sll  $t0, $s3, 2    // i*4
+add  $t1, $s6, $t0  // addr A[i]
+lw   $t3, 0($t1)   // A[i]
+add  $t0, $t3, $t2  // A[i] + A[j]
+sw   $t0, 32($s7)  // B[8] = A[i] + A[j]
+
+2.10
+
+f, g, h, i, j,  are in $s0, $s1, $s2, $s3, $s4
+A, B are in $s6, $s7
+MIPS code
+
+addi 	$t0, $s6, 4 // $t0 = &A[1]
+add 	$t1, $s6, $0 // $t1 = &A[0]
+sw  	$t1, 0($t0)  // A[1] = &A[0]
+lw  	$t0, 0($t0)  // $t0 = &A[0]
+add	$s0, $t1, $t0
+
+doesn't make too much sense because  $t1, $t0 are both &A[0]
+f = 2*(&A);  this is the code
+            
+2.11
+
+For each instruction what is the value of the field?
+   
+instruction format:
+  R   op (6 b), rs(5 b), rt(5 b), rd(5 bits), shamt (5),   funct(6) 
+  I   op (6 b), rs(5 b), rt(5 b),  const (16 bits)
+  J   op (6 b), const (26 bits)
+  t0   8  temporary registers
+  s0,s7   16 variables
+  v0, v1   2,3 function return values
+figure A.6.1 describes registers and usage.  
+
+command	format	op	rs	rt	rd	shamt	funct	const
+add	R	0	0-31	0-31	0-31	0	32	na
+sub	R	0	0-31	0-31	0-31	0	34	na
+addi	I	8	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
+lw	I	35	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
+sw	I	35	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
+
+all values in table are decimal.
+The destination or answer is in rd for add, sub, and rt for addi, lw, sw.
+
+
+2.12
+
+	 0x8000 0000
+	+0xD000 0000
+	------------
+	 0x5000 0000
+
+2.12.2  There has been overflow because the value is not the correct one. There
+	has been overflow whether the numbers are in Two's complement or not.
+2.12.3  
+	 0x8000 0000
+	-0xD000 0000
+	------------
+Two's complement on the D number yields:
+
+	 0x8000 0000
+	+0x3000 0000
+	------------
+	 0xB000 0000
+
+ans.  -8 - (-3) = -5 assuming Two's complement.
+2.12.4  No there has not been overflow here. The answer is correct as stated.
+The addition problem has a result outside of the 32 bit range (above it for
+regular numbers, below it for 2's complement numbers) so the result is not
+represented accurately.  For subtraction it does not overflow so if the numbers
+are twos complement, the result is accurate. 
+
+
+2.12.5
+
+	 0x8000 0000
+	+0xD000 0000
+	------------
+	 0x5000 0000  $t0
+	+0x8000 0000  $s0
+	------------
+     	 0xD000 0000  $t0
+
+2.12.6  The first addition has overflow.  In 2's complement  -8 + -3 = -11.
+adding 2**4, the first digit is represented by 5.  The next addition has no
+overflow, but the overflow is still in the result.  It never recovers. Here we
+add 0x8000 0000 twice and that is 2**32 which returns us to 0xD000 0000.
+
+2.13.1
+
+for $s0= 128base10, what values of $s1 in command add $t0, $s0, $s1 would lead
+to overflow?
+
+consider signed two's complement first.
+Ok one way in 2's complement to get to overflow is if you add two positive
+numbers to get a negative  ie  010 + 010 = 100 which would be overflow.
+
+128b10 = 
+
+to get the number subtract.
+	 0x8000 0000
+	-0x0000 0080
+	------------
+	 0x7FFF FF80  to 0x7FFF FFFF  when added to 0x0000 8000 causes overflow in two's complement. The msb becomes negative and the number would be negative. 
+
+In two's complement, even the most negative number possible will get more
+positive when added to 128b10.  ie
+ 
+	 0x8000 0000
+	+0x0000 0080
+	------------
+	 0x8000 0080  a negative number that has no overflow.
+
+for unsigned numbers:  Need to revisit this
+
+	 0x0000 0000
+	-0x0000 0080 
+	--------------
+
+
+	 0x0000 0000
+	+0xFFFF FF80
+     	--------------
+ 	 0xFFFF FF80 to 0xFFFF FFFF These will cause overflow in unsigned
+numbers.
+
+2.13.2  sub $t0, $s0, $s1 what range of $s1 leads to overflow?
+Two's complement answer first:
+subtracting a positive from d128 would lead to a negative and no overflow.  If
+we subtract a negative we would get a more positive number and eventually a
+number with a msb of 1 which would be interpreted as a negative number or
+overflow.  The answer is two's complement of the addition range:
+0x8000 0080 to 0x8000 0000.  These are all negative numbers.  This range
+is the 2's complement of addition range plus the lowest negative number.  That
+number has no 2's complement and would also cause overflow.  
+
+ 
+
+For unsigned numbers any number greater that 0x0000 0080 would cause underflow.
+0x0000 0081 to 0xFFFF FFFF 
+2.13.3
+For instruction  sub $t0, $s1. $s0, what is the range(s) of values ofr $s1 that
+would result in overflow?
+ 
+Signed Numbers:
+ $s0 = 0x0000 0080
+-$s0 = 0xFFFF FF80
+
+for $s1 positive we would not get overflow because 
+
+   $s1 >  $s1 - $s0 > $s0, and both $s1, $s0 are in range.  
+
+For negative numbers we could get overflow.  The condition for overflow is not
+that there is a carry.  For example:
+
+   -1 + -1 = -2  in three bit
+
+	 111
+	+111
+	----
+	 110 This works and there is a carry
+
+We get overflow when 
+
+
+	 0x   x
+	-0x0000 0080
+	-----------
+	 0x7FFF FFFF the largest positive number
+
+Solving for x
+
+	 0x7FFF FFFF
+	+0x0000 0080
+	------------
+	 0x8000 007F  to 0x8000 0000 
+Anything more negative will also lead to overflow (producing a positive
+number) hence the range above.
+
+check:	 0x8000 007F
+	+0xFFFF FF80
+	------------
+	 0x7FFF FFFF 
+
+This answer is one more than the complement of 13.1.  That is because above we
+were adding to a positive to get overflow and here we are adding (a negative) to
+a negative to get overflow.
+
+Unsigned:
+
+Any number 0x0000 007F to 0x0000 0000. The subtraction would lead to a negative
+number not represented in unsigned. 
+
+
+2.14  Type and assembly instruction of:
+
+0x0210 8020. Bits [31:26] = 0000 00using figure 2.19
+R format.  Next bits [5:0] = 100 000.  That means add.
+Looking up using the bit map for add earlier in this problem set 
+rs, rt and rd are all 16d or $s0
+answer add $s0, $s0, $s0.
+
+2.15
+type and hex format for sw, $t1, 32($t2)
+answer: I type as shown in 2.11
+op	rs	rt	const			   
+1000 11 01 010	0 1001  0000 0000 0010 0000
+35 dec  10d     9d      32d
+
+2.16
+op  = 0, funct = 34, rs = 3, rt = 2, rd = 3
+sub $v1, $v1, $v0
+$v1, $v0 are function return arguments.
+
+2.17
+type and assembly instruction for 
+op= 0x23  rs =1 rt = 2 const = 0x4
+op = binary 100 011 meaning load word.
+lw $v0, 4($at) 
+
+2.18.1
+How would a 128 file register affect the size of instructions?
+R type  rs, rt, rd would each have to be 7 bits (altogether 21 bits).
+The opcode and other fields still need to be at least as big as they are so.
+I would increase the op to 10, the shamt to 9 and the function to 24.  That
+allows for many more types of instructions.  I would then pick instruction sizes
+of 64 bits. Stride can still be 4 bytes.
+
+2.18.2
+Following the same system as 2.18.1, the op is 10, rs, rt is 14, and the
+constant is 40.
+
+2.18.3
+They could decrease the size of assembly programs because there would be less
+instructions.  For example the immediates would be larger so that lessen the
+chance of multiple instructions.  For example bne would have a large immediate
+so could jump to locations far away without the need for a jump instruction.
+load word would also benefit.  You could have large constants in the load word
+and store word instructions allowing easy access to large sized arrays up to
+2**40.  Constants would also be easier to store.  There would be less of a need
+for load upper immediate instructions because for most purposes, the immediate
+would be large enough in the lower immediate instruction to handle most used
+constants (up to 2**40 or 1e12.)   Lastly we would have more instructions, so
+the instructions could handle bigger problems.  The other instructions could be
+multi-media so there that would avoid having many repetitive similar
+instructions.  
+
+These changes would also increase the size of the MIPS assmbly program.  Each
+instruction would consume 4 times as much memory, so even if there were fewer
+instructions the memory needed would increasy by a large factor (probably 2 to 4
+times).
+
+2.19
+$t0 =0xAAAA AAAA
+$t1 =0x1234 5678
+
+2.19.1  $t2 after:
+
+sll $t2, $t0, 44   // after this $t0 = 0x0 because there are only 32 digits
+or  $t2, $t2, $t1
+since $t2 is 0, $t2 or $t1 is 0x1234 5678
+
+2.19.2  value after
+sll  $t2, $t0, 4   // $t2 = 0xAAAA AAA0
+andi $t2, $t2, -1  // $t2 = 0x0000 AAA0
+-1 is 0x0000 FFFF  no sign extension on andi
+2.19.3  $t2 after:
+
+srl  $t2, $t0, 3     // $t2 = 0xAAAA AAA6
+andi $t2, $t2, 0xFFEF// $t2 = 0x0000 AAA6
+zeros get 0 and A = 0   F and A = A  E & A = A
+
+2.20  find the number by inserting bits 16 to 11 from register $t0 into bits 31
+to 26 in register $t1.  Use the shortest sequence of MIPS instructions.
+
+addi $t2, $zero, 1023   // 0x03FF //add mask to $t2
+sll  $t2, $t2, 16       // move it to the highest bits
+addi $t2, $t2, 0xFFFF   // fill lower 16 bits with 1
+and  $t1, $t1, $t2      // replace highest  6 bits in $t1 with 0 keep the rest
+srl  $t0, $t0, 11       // move bit 11 to the lowest spot in $t0
+sll  $t0, $t0, 26       // put bits 11 to 16 into slots 26 to 31, rest are 0
+or   $t1, $t1, $t0      // highest 6 bits set by $t0, rest by $t1
+
+   
+ 
+ok may be able to make this shorter
+
+ori   $t0, $t0, 0x7FF   //replace lowest 10 bits with 1
+sll   $t0, $t0, 15     // move bit 11 to bit 26 zeros now in lower bits
+ori   $t0, $t0, 0x7FFF  // $t0 has mask in bits 26 to 31 and lower bits are 1
+ori   $t2, $zero, 0x3F  // lower 6 bits are 1
+sll   $t2, $t2, 26      // bits 31 to 26 are 1s rest 0.
+or    $t1, $t2, $t1     // bits 31 to 26  are 1 rest follow t1
+and   $t1, $t1, $t0   
+
+Ok it is about the same.  Can use an AND or an OR.
+
+Now try to use a mask
+// set up a mask
+ori   $t2, $zero, 0x3F  // lower 6 bits are 1
+sll   $t2, $t2, 26      // bits 31 to 26 are 1s rest 0. Mask is set
+// get $t3 as important bits then 0
+sll $t3, $t0, 15
+and $t3, $t3, $t2  //  $t3 = 1011 1100  0000 0000 ....
+// invert $t2
+not $t2, $t2
+and $t4, $t2, $t1   // $t4 = 0000 00aa  aaab ...
+or  $t1, $t4, $t3      
+// same number of instructions
+
+// Here is a shorter version from the first attempt:
+
+srl  $t0, $t0, 11       // move bit 11 to the lowest spot in $t0
+sll  $t0, $t0, 26       // put bits 11 to 16 into slots 26 to 31, rest are 0
+sll  $t1, $t1, 6        // lop off the 6 msb
+srl  $t1, $t1, 6        // replace them with 0
+or   $t1, $t1, $t0      // highest 6 bits set by $t0, rest by $t1
+  
+2.21 implement not $t1, $t2
+
+nor $t1, $t2, $zero  
+2.22  $t1=A, $t2 = B $s1 = base of C
+A = C[0] << 4
+
+
+lw $t0, 0($s1)  // loads $t0 = C[0];
+srl $t1, $t0, 4   
+ 

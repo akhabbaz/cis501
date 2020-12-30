@@ -1,0 +1,50 @@
+3.9
+(a)
+Karnough map is
+F(w, x, y, z) = 
+1001
+1111
+0110
+1001
+
+Essential prime implicants are xz, x'z'; other primes are w'z', w'x
+This could be all essential plus either other primes.
+3.9(b)
+1011
+0110
+0011
+1011
+F(ABCD)
+essential primes:  B'D', A'BD, AC
+primes:  B'C, CD,
+one way: all essential plus CD or B'C
+
+
+page 126  
+3.7  
+
+Wired AND logic
+
+
+consider an Nand gate where  A, B are in series n type FET, C, D are in series
+n type FETs. The outputs are wired together.  This makes AB forms an open
+collector NAND. Both gates need to be high for the gate to be low.   The wired
+connection becomes and AND gate.  For the output to be high, at least one of A,
+B must be low and at least one of C, D must be low.  If C, D are both high F
+will be low.  Here There will be an open gate to ground.   Because it is open
+collector, there the out may be shorted but no gates are fighting each other;
+just one or both paths may recieve current.
+
+
+The wired or is still connected together but the output is an ecl gate.  It
+looks the emmitters are tied together.  
+
+The nor would be A, B p type gates in series, connected to the Vcc. If A or B is high the output is
+low. The only way for the output to be high is if both A, B are low.  In that
+case, the emitter would go high. his is a nor. 
+
+Now tie together two emitters, one from A, B and the next from C, D.  If A, B are both 0 then one
+gate is open and the output will be high. It doesn't matter about C or D. C and
+D both could be low and in that case the output is high no matter A, B.
+
+

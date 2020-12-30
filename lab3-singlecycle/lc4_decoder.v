@@ -16,7 +16,7 @@ module lc4_decoder(input  wire [15:0] insn,               // instruction
                    output wire        is_control_insn     // is this a control instruction (JSR, JSRR, RTI, JMPR, JMP, TRAP)?
                    );
    
-   // Instruction decoder
+   // Instruction decoder. Every is label is related to the opcode. 
    wire [3:0] opcode = insn[15:12];
    assign     is_branch = (opcode == 4'b0000 & insn != 0);
 
@@ -42,7 +42,7 @@ module lc4_decoder(input  wire [15:0] insn,               // instruction
    wire       is_or = (is_logic & (insn[5:3] == 3'b010));
    wire       is_xor = (is_logic & (insn[5:3] == 3'b011));
    wire       is_andi = (is_logic & insn[5]);
-   
+
 
    wire       is_ldr = (opcode == 4'b0110);
    wire       is_str = (opcode == 4'b0111);
@@ -55,42 +55,43 @@ module lc4_decoder(input  wire [15:0] insn,               // instruction
    wire       is_srl = (is_shift & (insn[5:4] == 2'b10));
    wire       is_mod = (is_shift & (insn[5:4] == 2'b11));
 
-   
+
    wire       is_jmpr = (insn[15:11] == 5'b11000);
    wire       is_jmp = (insn[15:11] == 5'b11001);
    wire       is_hiconst = (opcode == 4'b1101);
    wire       is_trap = (opcode == 4'b1111);
-   
+
 
    // Register file
    assign r1sel = (is_compare | is_hiconst) ? insn[11:9] :  /*rs*/
-                  (is_rti) ? 3'd7 : insn[8:6];
+   (is_rti) ? 3'd7 : insn[8:6];
    assign r1re = is_arith | 
-                 is_compare | 
-                 is_jsrr | 
-                 is_logic | 
-                 is_ldr | 
-                 is_str | 
-                 is_rti | 
-                 is_shift | 
-                 is_jmpr |
-                 is_hiconst
-                 ;
-   
-   
+   is_compare | 
+   is_jsrr | 
+   is_logic | 
+   is_ldr | 
+   is_str | 
+   is_rti | 
+   is_shift | 
+   is_jmpr |
+   is_hiconst
+   ;
+
+
    assign r2sel = (is_str) ? insn[11:9] : insn[2:0]; /*rt*/
-      
+
    assign r2re = is_add | is_mul |  is_sub | is_div |
-                 is_cmp | is_cmpu |
-                 is_and | is_or | is_xor |
-                 is_str |
-                 is_mod;
-   
+   is_cmp | is_cmpu |
+   is_and | is_or | is_xor |
+   is_str |
+   is_mod;
+
    assign wsel = (is_jsr | is_jsrr | is_trap) ? 3'd7 : insn[11:9];  /*rd*/
 
    assign regfile_we = is_arith | is_jsr | is_jsrr | is_logic | is_ldr | is_const | is_shift | is_hiconst | is_trap;
-   assign nzp_we = regfile_we | is_compare;// not clear to me why regfile_we is
-					   // included here 
+   assign nzp_we = regfile_we | is_compare;// regfile_we included because lc3
+		// includes it.  This is for backwards compatibility of
+		// instructions.
    assign select_pc_plus_one = is_trap | is_jsrr | is_jsr;
    assign is_load = is_ldr;
    assign is_store = is_str;

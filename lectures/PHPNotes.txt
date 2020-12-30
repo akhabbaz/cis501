@@ -1,0 +1,9 @@
+Chapter 2
+
+
+Symbol table 
+matches labels to addresses.  Contains a pair of symbol and addresses of the
+memory words that instructions occupy.
+
+relocation information: identifies instructions and data words that depend on
+absolute addresses.
