@@ -627,4 +627,34 @@ A = C[0] << 4
 
 lw $t0, 0($s1)  // loads $t0 = C[0];
 srl $t1, $t0, 4   
- 
+2.23  
+$t0 holds 0x00101000 . What is $t2 after this?
+
+slt $t2, $0, $t0
+bne $t2, $0, ELSE
+J Done
+ELSE: addi $t2, $t2, 2
+DONE:
+
+Ans.  bne is true so else is taken T2 should be 2.23  
+$t0 holds 0x00101000 . What is $t2 after this?
+
+slt $t2, $0, $t0
+bne $t2, $0, ELSE
+J Done
+ELSE: addi $t2, $t2, 2
+DONE:
+
+Ans.  bne is true so else is taken T2 should be 3.  Code is written and run in
+QTspim. 
+2.24
+
+PC set to 0x2000 0000.  Can jump be used to set pc to 0x4000 0000? 
+Ans:  No I don't think so.  There is only 26 bits in the jump instruction so the
+26 bits are multiplied by 4 to represent words or instructions.  The jump can
+only go 64 million instructions away.  This jump is 536.9 million instructions
+away.  Too far. 
+
+Can beq be used to set the PC to this address?  No.  That only has 16 bits and
+also represents words.  The words I value is multiplied by 4 to get the final
+address.

@@ -9,6 +9,11 @@
 
 // disable implicit wire declaration
 `default_nettype none
+
+`define zero16  16'h0
+`define one1     1'b0
+`define DataWidth 16
+`define NZPWidth   3
 /* lc4_branch decides whether the branch should be taken.  It considers the nzp
  * bits and the instruction bits. */
 module lc4_branch( input wire [2:0] insnbr,   // instruction bits
@@ -32,6 +37,9 @@ module lc4_nzp( input wire [15:0] cmp,  // the compare signal output of ALU
     assign nzp[1] = ~|cmp;  // zero
     assign nzp[0] = ~cmp[15] & (|cmp[14:0]);// positive
 endmodule
+
+
+
 module lc4_processor
    (input  wire        clk,                // Main clock
     input  wire        rst,                // Global reset
@@ -77,21 +85,89 @@ module lc4_processor
    assign test_stall = 2'b0; 
 
    // pc wires attached to the PC register's ports
-   wire [15:0]   pc;      // Current program counter (read out from pc_reg)
-   wire [15:0]   next_pc; // Next program counter (you compute this and feed it into next_pc)
+   wire [15:0]   pc;      //  34 Current program counter (read out from pc_reg)
+   wire [15:0]   next_pc; //  44 Next program counter (you compute this and feed it into next_pc)
 
    // Program counter register, starts at 8200h at bootup
-   Nbit_reg #(16, 16'h8200) pc_reg (.in(next_pc), .out(pc), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+   Nbit_reg #(`DataWidth, 16'h8200) pc_reg (.in(next_pc), .out(pc), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
    /* END DO NOT MODIFY THIS CODE */
 
-
    /*******************************
-    * TODO: INSERT YOUR CODE HERE *
+    * MY CODE                     *
     *******************************/
+   wire        loadCntrl;       // 20  is_load
+   wire        storeCntrl;      // 21  is_store
+   wire        branchCntrl;     // 22  is_branch
+   wire        insnCntrl;       // 23  is_control_insn
+   wire        branchAsserted;  // 24  output of lc4 branch
+   wire        pcMuxSel;        // 25  outut of or2 to PCMux
+   wire [2:0]  NZPCurrBits;     // 26  nzp register output
+   wire	       branchTrue; 	// 27  and out to or2 in
+   wire [2:0]  r1SelAddr;       // 28  to i_rs regfile
+   wire [2:0]  r2SelAddr;       // 29   to i_rt regfile
+   wire [2:0]  regWriteSel;     // 30 to i_rd regfile
+   wire        regWriteEn;      // 31 to i_rd we regfile
+   wire        nzpWriteEn;      // 32  nzp_we to nzp register
+   wire        pcPlusOneWrite;  // 33 select_pc_plus_one (write to register)
+   wire [15:0] PCPlusOneData;   // 35 claPC  sum to PCMux, Register_Mux 
+   wire [15:0] regfileWriteData;// 36 register Mux to regfile
+   wire [15:0] o_rs_data;       // 37 output of lc4_regfile RS output
+   wire [15:0] o_rt_data;       // 38 output of lc4_regfile Rt output
+   wire        memAddrSel;      // 39  control for address Mux
+   wire [15:0] lc4AluOut;      	// 40 lc4_alu o_result to pc_Mux, addr mux,
+				//    regMux 
+   wire [2:0]  NZP_new_bits;    // 41 nzp_reducer nzp to NZP_register in
+   wire [1:0]  RegMuxSel;       // 42 merge, out to register_mux sel control;
+   wire [1:0]  DataMuxSel;      // 43 merge, out to Data_mux sel
+  
+ 
+   // set test_cur_pc
+   assign test_cur_pc = pc;
+   // instantiate the decoder
+   lc4_decoder lc4Decode(.insn(i_cur_insn), .r1sel(r1SelAddr), .r1re(),
+			.r2sel(r2SelAddr), .r2re(), .wsel(regWriteSel),
+			.regfile_we(regWriteEn), .nzp_we(nzpWriteEn), 
+			.select_pc_plus_one(pcPlusOneWrite),
+			.is_load(loadCntrl), .is_store(storeCntrl),
+			.is_branch(branchCntrl), .is_control_insn(insnCntrl));
+   assign test_regfile_wsel = regWriteSel;
+   assign test_regfile_we = regWriteEn;
+   assign test_nzp_we     = nzpWriteEn;
+   assign test_dmem_we = storeCntrl;
+   assign o_dmem_we = storeCntrl;
+   // Memory address sel
+   assign memAddrSel = storeCntrl | loadCntrl;
+   // decide if the branch condition is true
+   lc4_branch   lc4Branch(.insnbr(i_cur_insn[11:9]), .nzp(NZPCurrBits),
+				.takeBranch(branchAsserted));
+   // regfile set up
+   lc4_regfile lc4Regfile(.clk(clk), .gwe(gwe), .rst(rst), 
+		.i_rs(r1SelAddr), .o_rs_data(o_rs_data), 
+		.i_rt(r2SelAddr), .o_rt_data(o_rt_data),
+		.i_rd(regWriteSel), .i_wdata(regfileWriteData), 
+		.i_rd_we(regWriteEn));
+   defparam  lc4Regfile.s = 3;
+   defparam  lc4Regfile.n = `DataWidth;  
+   assign o_dmem_towrite = o_rt_data;
+ 
+   //25 pcMuxSel Logic to decide next_pc
+   assign branchTrue = branchCntrl & branchAsserted;
+   assign pcMuxSel   = insnCntrl | branchTrue;
 
-
-
+   // get PC + 1
+   cla16  claPC(.a(pc), .b(`zero16), .cin(`one1),.sum(PCPlusOneData));
+   // pc_Mux Select
+   wire  [2*`DataWidth -1:0] pcMuxIn; // 45 Merge2 of PCMux in
+   merge2 pcMuxInMerge(.a(PCPlusOneData), .b(lc4AluOut), .out(pcMuxIn)); 
+   multiplex  PC_Mux(.sel(pcMuxSel), .in(pcMuxIn), .out(next_pc));
+   defparam  PC_Mux.s = 1;
+   defparam  PC_Mux.n = `DataWidth;
+   assign    o_cur_pc = next_pc;
+   //LC4_ALU
+   lc4_alu  LC4_ALU(.i_insn(i_cur_insn), .i_pc(pc), 
+		     .i_r1data(o_rs_data), .i_r2data(o_rt_data),
+		      .o_result(lc4AluOut)); 
    /* Add $display(...) calls in the always block below to
     * print out debug information at the end of every cycle.
     *
