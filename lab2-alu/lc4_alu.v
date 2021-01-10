@@ -5,6 +5,10 @@
 `define zeroH 16'h0
 `define oneH  16'h1
 `define negOne 16'hFFFF
+`define DataWidth 16
+`define selectTwo   1
+`define selectFour  2
+`define selectEight 3
 `default_nettype none
 /*   mux2to1_16bit will choose input based on s, choosing a (s = 0) or b( s =
  *   1)
@@ -148,7 +152,13 @@ module jsr (input  wire [11:0] imm_ins,
        wire [15:0] pcVal;
        assign pcVal = { pc15,  imm_ins[10:0], 4'b0};
        wire sel  = imm_ins[11];
-       mux2to1_16bit m2To1(.s(sel), .a(i_r1data), .b(pcVal), .y(o_result));
+       //mux2to1_16bit m2To1(.s(sel), .a(i_r1data), .b(pcVal), .y(o_result));
+       wire  [2*`DataWidth -1 :0] merged; 
+       merge2  m2(.a(i_r1data), .b(pcVal), .out(merged));
+       defparam m2.n = `DataWidth; 
+       multiplex    m2To1(.sel(sel), .in(merged), .out(o_result));
+       defparam    m2To1.n = `DataWidth;
+       defparam    m2To1.s = `selectTwo;
 endmodule
 
 /* hiconst calculates hiconst based on the instruction. uimm is the lower 8 bits

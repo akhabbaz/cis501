@@ -658,3 +658,32 @@ away.  Too far.
 Can beq be used to set the PC to this address?  No.  That only has 16 bits and
 also represents words.  The words I value is multiplied by 4 to get the final
 address.
+
+
+2.25 
+
+Here is the instruction
+
+rpt  $t2, loop;  # if (R[rs] > 0) R[rs] = R[rs] -1, PC = PC + 4 + BranchAddr
+
+(1) what instruction format?
+  loop is a branch address, so we want loop have at least 16 bits.  $t2 is
+presumably the address of the array R and rs must be zero.  With this scheme,
+one can always access any array element because an addition can make $t2 a
+different element. Because loop is a label that would be executed with a bne or
+beq instruction, loop needs to be 16 bits.  Format I would be the best.
+
+(2) instructions to implement this
+loop:
+code here
+
+
+
+lw  $t1, 0($t2)   # load value in $t2 into $t1 
+slti $t0, $t1, 1  # t0 is 1 if  $t1 < 0
+bne  $t0, $0, done
+addi $t1, $t1, -1
+sw  $t1, 0($t2)
+j   loop 
+done:
+......

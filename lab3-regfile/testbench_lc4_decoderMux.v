@@ -22,44 +22,27 @@ module test_regfile;
 
    // Inputs
    reg         clk;
-   parameter     n = 3;
+   parameter    s = 2;
+   localparam   l = 2**s;
    reg [2:0]   sel;
    
    // Outputs
-   wire [7:0] hotwire;
+   wire [l-1:0] hotwire;
    
    // Instantiate the Unit Under Test (UUT)
    
-  decoder_N_to_hotwire decoder ( .sel(sel), .hotwire(hotwire));
-  defparam   decoder.N = n;
-   lc4_regfile regfile (.i_rs(rs),
-                        .i_rt(rt),
-                        .i_rd(rd),
-                        .o_rs_data(rs_data),
-                        .o_rt_data(rt_data), 
-                        .i_wdata(wdata),
-                        .i_rd_we(wen),
-                        .gwe(gwe),
-                        .rst(rst),
-                        .clk(clk)
-                        );
+  decoder decode ( .sel(sel), .hotwire(hotwire));
+  defparam   decode.s = s;
    
-   reg [7:0]  expectedValue1;
+   reg [l-1:0]  expectedValue1;
    
    always #5 clk <= ~clk;
    
    initial begin
       
       // Initialize Inputs
-      rs = 0;
-      rt = 0;
-      rd = 0;
-      wen = 0;
-      rst = 1;
-      wdata = 0;
       clk = 0;
-      gwe = 1;
-
+      sel = 0; 
       errors = 0;
       tests = 0;
       output_file = 0;
@@ -83,11 +66,10 @@ module test_regfile;
       // Wait for global reset to finish
       #100;
       
-      #5 rst = 0;
       
       #2;         
 
-      while (7 == $fscanf(input_file, "%d %d %d %b %h %h %h", rs, rt, rd, wen, wdata, expectedValue1, expectedValue2)) begin
+      while (2 == $fscanf(input_file, "%d %d", sel, expectedValue1)) begin
          
          #8;
          
@@ -96,18 +78,14 @@ module test_regfile;
          // $display("tests: ", tests);
          
          if (output_file) begin
-            $fdisplay(output_file, "%d %d %d %b %h %h %h", rs, rt, rd, wen, wdata, rs_data, rt_data);
+            $fdisplay(output_file, "%d %d", sel, hotwire);
          end
 
-         if (rs_data !== expectedValue1) begin
-            $display("Error at test %d: Value of register %d on output 1 should have been %h, but was %h instead", tests, rs, expectedValue1, rs_data);
+         if (hotwire !== expectedValue1) begin
+            $display("Error at test %d: input %d output expected: %h, but was %h instead", tests, sel, expectedValue1, hotwire);
             errors = errors + 1;
          end
          
-         if (rt_data !== expectedValue2) begin
-            $display("Error at test %d: Value of register %d on output 2 should have been %h, but was %h instead", tests, rt, expectedValue2, rt_data);
-            errors = errors + 1;
-         end
          
          #2;         
          

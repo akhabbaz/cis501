@@ -27,6 +27,8 @@ sw	I	35	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
 
 all values in table are decimal.
 The destination or answer is in rd for add, sub, and rt for addi, lw, sw.
+lw uses an offset that can be negative.  Thus it is sign extended.  Also this is
+byte addressable, and not word addressable.
 
 Useful instructions
 branches jumps

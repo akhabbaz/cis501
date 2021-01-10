@@ -13,7 +13,12 @@
 `define zero16  16'h0
 `define one1     1'b0
 `define DataWidth 16
+`define cntrlWidth 1
 `define NZPWidth   3
+`define SelTwo     1  // width s**SelTwo allows 2 choices
+`define selFour    2  // s**selFour is 4
+`define selEight   3  // s**selEight is 8
+
 /* lc4_branch decides whether the branch should be taken.  It considers the nzp
  * bits and the instruction bits. */
 module lc4_branch( input wire [2:0] insnbr,   // instruction bits
@@ -147,7 +152,7 @@ module lc4_processor
 		.i_rt(r2SelAddr), .o_rt_data(o_rt_data),
 		.i_rd(regWriteSel), .i_wdata(regfileWriteData), 
 		.i_rd_we(regWriteEn));
-   defparam  lc4Regfile.s = 3;
+   defparam  lc4Regfile.s = `selEight;
    defparam  lc4Regfile.n = `DataWidth;  
    assign o_dmem_towrite = o_rt_data;
  
@@ -160,14 +165,19 @@ module lc4_processor
    // pc_Mux Select
    wire  [2*`DataWidth -1:0] pcMuxIn; // 45 Merge2 of PCMux in
    merge2 pcMuxInMerge(.a(PCPlusOneData), .b(lc4AluOut), .out(pcMuxIn)); 
+   defparam pcMuxInMerge.n = `DataWidth;  
    multiplex  PC_Mux(.sel(pcMuxSel), .in(pcMuxIn), .out(next_pc));
-   defparam  PC_Mux.s = 1;
+   defparam  PC_Mux.s = `selTwo;
    defparam  PC_Mux.n = `DataWidth;
    assign    o_cur_pc = next_pc;
    //LC4_ALU
    lc4_alu  LC4_ALU(.i_insn(i_cur_insn), .i_pc(pc), 
 		     .i_r1data(o_rs_data), .i_r2data(o_rt_data),
-		      .o_result(lc4AluOut)); 
+		      .o_result(lc4AluOut));
+
+   // data_Mux to select test_dmem_data
+   merge2  dataMuxSelMerge(.a( storeCntrl), .b(loadCntrl), .out(DataMuxSel));
+   defparam  dataMuxSelMerge.n = `cntrlWidth;
    /* Add $display(...) calls in the always block below to
     * print out debug information at the end of every cycle.
     *
