@@ -12,7 +12,10 @@ usage_statistics_webtalk.*ml
 .Xil/
 snapshot.sim
 sim.wdb
-
+#  My changes
+xsim.dir
+xelab.pb
+output
 # IP-related files
 *.mif
 *.veo
