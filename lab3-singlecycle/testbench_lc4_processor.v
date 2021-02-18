@@ -30,9 +30,9 @@ module test_processor;
    wire [15:0] cur_dmem_data;
    // my test:
    integer myval = 2**2;
-   wire   [1:0] two;
+   wire   [2:0] two;
    wire     testEqual;
-   assign two = 2'b00;
+   assign two = 3'b100;
    assign testEqual = (two == 2**2)? 1:0;
 
    // Outputs
@@ -52,7 +52,7 @@ module test_processor;
    wire        test_dmem_we;      // Testbench: data memory write enable
    wire [15:0] test_dmem_addr;    // Testbench: address to write to memory
    wire [15:0] test_dmem_data;    // Testbench: value to write to memory
-
+   wire [15:0] test_aluOut_data;  // Testbench: aluOutput
    reg  [15:0] verify_pc;
    reg  [15:0] verify_insn;
    reg         verify_regfile_we;
@@ -118,6 +118,7 @@ module test_processor;
                             .test_dmem_we(test_dmem_we),
                             .test_dmem_addr(test_dmem_addr),
                             .test_dmem_data(test_dmem_data),
+			    .test_alu_out(test_aluOut_data),
                             .switch_data(8'd0)
                             );
    	
@@ -272,6 +273,9 @@ module test_processor;
                   if (errors <= `MAX_FAILURES_TO_PRINT) begin
                      $display( "Error at line %d: nzp_new_bits should be %h (but was %h)", 
                                linenum, verify_nzp_new_bits, test_nzp_new_bits);
+                     $display("    PC:  %h, insn: %h,  ALUOut: %h, NZP_we: %h", test_pc,
+				test_insn, 
+				test_aluOut_data, test_nzp_we);   
                   end
                   errors = errors + 1;
                end

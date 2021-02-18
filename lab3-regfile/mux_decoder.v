@@ -28,7 +28,8 @@ endmodule
     
 /* mux_hotwire_1B takes a hotwire that is 2**s bits wide, and an input that
  * is 2**s bits wide and outputs only one of them (1bit), governed by the hotwire.  For
- * example, s = 2, hotwire = 0010, in = 1101, out = 0; */
+ * example, s = 2, hotwire = 0010, in = 1101, out = 0;  When s = 0, the least
+ * significant bit is chosen.*/
 module mux_hotwire_1B(hotwire, in, out);
     parameter s = 3;
     localparam l = 2**s;
@@ -80,7 +81,8 @@ endmodule
  * parameter. The input is  l * n bits wide and the output is n bits wide, and
  * is selected from the input, governed by the
  * hotwire. The input is  a large bus where the LSB n bits correspond to
- * hotwire 0.*/
+ * hotwire 0.
+ *    This version has been debugged and it passes all tests.  */
 module multiplex (sel, in, out);
     parameter   s = 3; // the width of the selector
     parameter   n = 16;  // the bus width of the output
@@ -97,20 +99,41 @@ module multiplex (sel, in, out);
     defparam   muxSel.n = n;
 endmodule
 
+/* multiplex, in an multiplexer for n bit wide signals, governed by an  s bit
+ * wide selector.  s, n are input parameters.  The hotwire is l= 2**s  bits wide, 
+ * where s is the first input parameter. The input is  l * n bits wide and the output 
+ * is n bits wide, and is selected from the input.  The input is  a large bus where 
+ * the LSB n bits correspond to hotwire 0.
+ *   This version uses an always loop to choose a section of the input to copy
+ * to the output.  This is easier to understand than the above code and may be
+ * faster. */
 
+module multiplex2 (sel, in, out);
+    parameter   s = 3; // the width of the selector
+    parameter   n = 16;  // the bus width of the output
+    localparam  l = 2**s; // hotwire width
+    localparam  k = n * l; // number of wires in input
+    input wire [s - 1:0] sel;
+    input wire [k - 1:0] in;
+    output reg  [n - 1 :0] out;
+    always  @(sel, in)
+	begin
+	  out = in[sel*n +: n];
+	end  
+endmodule
 /*Merge2 will merge two inputs into a larger bus. Inputs are concatenated from
- * lowest (a)  to highest (b). */
+ * least significant bit lowest (a)  to highest (b). */
 module merge2(a, b, out);
 	parameter n = 16;
   	localparam max = 2*n;
 	input wire  [n-1:0] a;
 	input wire  [n-1:0] b;
 	output wire [max -1:0] out;
-        assign out = {a, b};
+        assign out = {b, a};
 endmodule
     
 /* Merge4 will merge inputs into a larger bus. Inputs are concatenated from
- * lowest (a) to highest (d). */
+ *  least significant bits lowest (a) to highest (d). */
 module merge4(a, b, c, d,  out);
 	parameter n = 16;
   	localparam max = 4*n;
@@ -119,11 +142,11 @@ module merge4(a, b, c, d,  out);
 	input wire  [n-1:0] c;
 	input wire  [n-1:0] d;
 	output wire [max -1:0] out;
-        assign out = {a, b, c, d};
+        assign out = {d, c, b, a};
 endmodule
     
 /* Merge8 will merge inputs into a larger bus. Inputs are concatenated from
- * lowest (a) to highest (h). */
+ * least significant bits (a) to most Significant bits (h). */
 module merge8(a, b, c, d, e, f, g, h, out);
 	parameter n = 16;
   	localparam max = 8*n;
@@ -136,5 +159,17 @@ module merge8(a, b, c, d, e, f, g, h, out);
 	input wire  [n-1:0] g;
 	input wire  [n-1:0] h;
 	output wire [max -1:0] out;
-        assign out = {a, b, c, d, e, f, g, h};
+        assign out = {h, g, f, e, d, c, b, a};
+endmodule
+/* Merge16 will merge inputs into a larger bus. Inputs are concatenated from
+ * least significant bits (a) to most Significant bits (p).  Because of
+ * conflict, w is used for the number of bits (data Width).*/
+module merge16(a, b, c, d, e, f, g, h,
+	       i, j, k, l, m, n, o, p, out);
+	parameter w = 16;
+  	localparam max = 16 * w;
+	input wire  [w - 1:0] a, b, c, d, e, f, g, h;
+	input wire  [w - 1:0] i, j, k, l, m, n, o, p;
+	output wire [max -1:0] out;
+        assign out = {p, o, n, m, l, k, j, i, h, g, f, e, d, c, b, a};
 endmodule

@@ -12,9 +12,10 @@ ZIP_FILE=single.zip
 # testbench
 
 TESTBENCH=testbench_lc4_processor.v
+#TESTBENCH=testbench_lc4_nzp.v
 TOP_TESTBENCH_MODULE=test_processor
 NEEDS_TEST_CASE=true
-
+#NEEDS_TEST_CASE=false
 # LC4 assembly code
 
 PENNSIM_SCRIPT=lab3-demo.pennsim

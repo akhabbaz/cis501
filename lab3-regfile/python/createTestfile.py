@@ -6,8 +6,8 @@ import sys
 testfile =  "decoder.txt"
 s = 4  # l = 2**s is the number of choices
 dataWidth = 16 # width of data 
-datalines = 10 # number of data rows
-seedNumber = 1001 # seed the random number generator
+datalines = 1200 # number of data rows
+seedNumber = 145 # seed the random number generator
 #randomDataWidth will create a random integer n bits wide
 def randomDataWidth(n):
      maxVal = pow(2, n);
@@ -28,17 +28,17 @@ def  createDecoderTester (s, n, filename, lines):
      original_stdout = sys.stdout
      sys.stdout = f
      maxVal = pow(2, s);
-     print("%4s %4s"%(hex(s), hex(n)));
-     for i in range (1, lines):
+     print("%2s %2s"%(hex(s)[2:], hex(n)[2:]));
+     for i in range (0, lines):
           val = random.randint(0, maxVal -1)
           selectedVal = -1;
-          print("%4s %6s"%(hex(val), hex(pow(2, val))), end = " ")
+          print("%2s %4s"%(hex(val)[2:], hex(pow(2, val))[2:]), end = " ")
           for j in range (0, maxVal):
                thisRandomNumber = randomDataWidth(n);
-               print("%7s"%hex(thisRandomNumber),  end = " ")
+               print("%8s"%hex(thisRandomNumber)[2:],  end = " ")
                if j == val:
                     selectedVal = thisRandomNumber;
-          print("%7s"%hex(selectedVal))
+          print("%8s"%hex(selectedVal)[2:])
      sys.stdout = original_stdout
      f.close()
 

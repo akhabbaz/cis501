@@ -1,0 +1,160 @@
+  I   op (6 b), rs(5 b), rt(5 b),  const (16 bits)
+  J   op (6 b), const (26 bits)
+  t0   register 8  temporary registers
+  s0,s7   16 variables
+  v0, v1   2,3 function return values
+figure A.6.1 describes registers and usage.  
+
+command	format	op	rs	rt	rd	shamt	funct	const
+add	R	0	0-31	0-31	0-31	0	32	na
+sub	R	0	0-31	0-31	0-31	0	34	na
+addi	I	8	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
+lw	I	35	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
+sw	I	35	0-31	0-31	na	na	na	-2**15 -> 2**(15)-1
+
+all values in table are decimal.
+The destination or answer is in rd for add, sub, and rt for addi, lw, sw.
+lw uses an offset that can be negative.  Thus it is sign extended.  Also this is
+byte addressable, and not word addressable.
+
+Useful instructions
+branches jumps
+bne  $s0, S1, label # format I, $s0 != $s1  goto label; label is a 16 bit word
+		    # address that is added to PC + 4, opcode 5
+beq  $s0, S1, label # format I, $s0 == $s1  goto label; label is a 16 bit word
+		    # address.  Label is the command address from PC+4
+j    Label          # format J, word address, lower 26 bits from label, upper 4
+		    # from PC. label must be within 256 MB or 64 million
+		    # instructions away. jump to label
+jal    Label        # format J, word address, lower 28 bits from label, upper 4
+		    # from PC. label must be within 256 MB or 64 million
+		    # instructions away. jump to label and store current pc+4 in
+		    # register $ra.
+jr   $ra            # not sure format but could be I, anyway next pc is from
+		    # register $ra.
+
+comparisons
+slti  $t0, $s2, 10  # format I ; $t0 = 1 if $s2 < 10
+slt   $t0, $s2, $s1 # format R ; $t0 = 1 if $s2 < $s1
+sltu  $t0, $s2, $s1 # format R ; $t0 = 1 if $s2 < $s1 unsigned comparison
+constants
+lui  $s0, 61,       # load upper 16 bits of $s0 with constant and fill lower 16
+		    # bits with 0s.
+load bytes:
+lb, $t0, 0($sp)     # read a byte from source puts it into rightmost 8 bit of a
+		    # register. Then it sign extends the byte.  format I
+lbu, $t0, 0($sp)    # load a byte but this time set the upper bits to zero.
+sb, $t0, 0($gp)     # store a byte from source, format I
+
+
+
+
+Appendix A
+
+SPIM:  When it does a branch, it writes the address from PC, not PC + 4.  It is
+easier to read that way; just add the number to the current PC to get the new
+PC, but this is not MIPS.  Also in MIPS the branch is words from PC +4 not bytes
+from PC as shown in SPIM.  Bytes from PC is easier to reason with so hence why
+that was done.
+
+MIPS loading constants:
+
+from stack overflow
+1
+
+Generally I'd say using li is the better approach. You're avoiding adding a bunch of clutter in your .data section, and you will also get more efficient code in some cases.
+
+Let's look at some examples:
+
+.data
+ten: .word 10
+million: .word 1000000
+
+.text 
+main:
+    lw $t0,ten
+    li $t1,10
+    lw $t2,million
+    li $t3,1000000
+
+It's important to understand here that both lw and li are pseudo-instructions that get translated into one or more actual instructions. lw does exist in the MIPS instruction set, but this particular variant of it doesn't. li doesn't exist in the MIPS instruction set.
+
+If we look at what SPIM generates for the first two instructions, we see:
+
+[0x00400024]    0x3c011001  lui $1, 4097                    ; 9: lw $t0,ten
+[0x00400028]    0x8c280000  lw $8, 0($1)
+
+[0x0040002c]    0x3409000a  ori $9, $0, 10                  ; 10: li $t1,10
+
+So that's one additional instruction for the lw variant, as the address first has to be loaded into a register, and then the value is loaded from that address. This also means one additional (potentially slow) memory access (well, two if you count the instruction fetch).
+
+Now let's look at the other two instructions, where the value to be loaded is too large to be encoded in a single instruction:
+
+[0x00400030]    0x3c011001  lui $1, 4097                    ; 11: lw $t2,million
+[0x00400034]    0x8c2a0004  lw $10, 4($1)
+
+[0x00400038]    0x3c01000f  lui $1, 15                      ; 12: li $t3,1000000
+[0x0040003c]    0x342b4240  ori $11, $1, 16960
+
+Here the immediate 1000000 is loaded using two instructions as (15 << 16) | 16960. So both variants require two instructions, but the li variant doesn't need to read from memory.
+
+If you want to assign a meaningful name to a constant to avoid having magic numbers all over your code you can do so with =:
+
+TEN = 10
+
+li $t0, TEN   # Expands to li $t0, 10
+
+
+Example program from https://ecs-network.serv.pacific.edu/ecpe-170/tutorials/example1.asm/view
+
+# A demonstration of some simple MIPS instructions
+# used to test QtSPIM
+
+	# Declare main as a global function
+	.globl main 
+
+	# All program code is placed after the
+	# .text assembler directive
+	.text 		
+
+# The label 'main' represents the starting point
+main:
+	li $t2, 25		# Load immediate value (25) 
+	lw $t3, value		# Load the word stored in value (see bottom)
+	add $t4, $t2, $t3	# Add
+	sub $t5, $t2, $t3	# Subtract
+	sw $t5, Z		#Store the answer in Z (declared at the bottom)  
+
+	# Exit the program by means of a syscall.
+	# There are many syscalls - pick the desired one
+	# by placing its code in $v0. The code for exit is "10"
+	li $v0, 10 # Sets $v0 to "10" to select exit syscall
+	syscall # Exit
+
+	# All memory structures are placed after the
+	# .data assembler directive
+	.data
+
+	# The .word assembler directive reserves space
+	# in memory for a single 4-byte word (or multiple 4-byte words)
+	# and assigns that memory location an initial value
+	# (or a comma separated list of initial values)
+value:	.word 12
+Z:	.word 0
+
+Contents
+
+        Virtual Machine Setup
+        QtSpim Tutorial
+        MIPS Instruction Set
+        MIPS Example Programs
+        gedit Syntax Highlighting
+        File Assembly Source Code example1.asm
+
+
+$gp in SPIM:  This looks like it points to the first 64K of the heap.  Global
+constants seem to be at 0x1001 0000, so when you use gp the global memory, an
+extra command is generated to add $1 to the temporary $at register.  This makes
+the data accessible with $gp in the standard way.  See 2R27 for an example 
+
+

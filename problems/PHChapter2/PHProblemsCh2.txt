@@ -677,6 +677,9 @@ beq instruction, loop needs to be 16 bits.  Format I would be the best.
 loop:
 code here
 
+loop:
+
+
 
 
 lw  $t1, 0($t2)   # load value in $t2 into $t1 
@@ -687,3 +690,258 @@ sw  $t1, 0($t2)
 j   loop 
 done:
 ......
+
+26:
+
+Here is the code:
+
+	.text
+	.align 2
+	.globl main
+main:
+        addi  $s2, $0, 0   #  $s2 is B
+	addi  $t1, $0, 10  # load $t1 with 10, i
+LOOP:        
+	slt  $t2, $0, $t1    #  0 < $t1 true $t2 = 1
+        beq  $t2, $0, DONE   # branche taken
+        addi $t1, $t1, -1
+        addi $s2, $s2, 2
+        j    LOOP   
+DONE:   
+        jr  $ra          # must go back to system caller
+26.1
+
+What is $s2 after finished?  THis is a for loop that runs 10 times. Each
+iteration s2 increased by 2 and reaches 20.
+
+26.2 C code
+
+      int B = 0
+      for (int i = 10; i> 0; i-=1)
+		B += 2;
+26.3 instructions assuming $t1 is N.  From LOOP There are N iterations of the
+loop, each executing 5 instructions.  5*N.  Then there will be 2 more, slt, and
+beq.  Altogether 5*N +2, and then finally the jr.
+
+
+
+2.27
+translate the following into MIPS assembly
+$s0  a
+$s1  b
+$t0  i
+$t1  j
+$s2  base of D 
+for (i=0; i < a; i++)
+for (j=0; j < b; j++) 
+     D[4*j] = i + j
+
+This is done in spim 2R27.  The code works and produces the correct sum and the
+correct values for D.  The core lines for this code would be 14 lines (after
+initialization) to the last endloop.  One add is not needed but used to sum all
+i+ j.
+ 
+        move $t0, $zero # initialize i = 0
+OuterL:        
+	sltu $t2, $t0, $s0         #t2 is comparison outer loop
+	beq  $t2, $zero, endLoop
+        move   $t1, $zero          # j initialized to $zero
+loopIn:
+	sltu $t3, $t1, $s1
+        beq  $t3, $zero, endIn
+        add  $t4, $t1, $t0   # $t4 = i + j
+        add  $s3, $s3, $t4   # sum of all $i +j = a*b*(a + b -2)/2
+        sll  $t5, $t1, 4     # 2^4 times is j*4 in bytes
+        add  $t6, $t5, $s2   # base address to write
+        sw   $t4, 0($t6)     # store the word at the base address
+        add $t1, $t1, 1      # increment j
+        j    loopIn
+endIn:
+	add $t0, $t0, 1      # increment i
+        j   OuterL
+endLoop:
+
+2.28 How many instructions?  There are 14 instructions if you don't include the
+sum of i + j which is not in the problem.  If a is 10, b is 1 instructions are
+140 to complete the loop. 
+
+2.29:  This loop in C
+There is a typo in the MIPS code
+
+last line
+was 
+bne $t2, $s0, LOOP 
+but should be
+bne $t2  $zero, LOOP
+
+
+int result;  // initialized previously
+for (i = 0; i < 100; i++)
+    result +=MemArray[i];
+
+2.30
+Reduce the number of mips lines.  This is in a SPIM file 2R30.s and it is 5
+lines long.  It does the sum:
+
+
+#set up variables
+main:
+	lw $s1, 0x8000($gp)        # memSize 
+        la $s0, MemArray           # memArray address
+        or $s2, $zero, $zero       #sum of all the assignments 
+        sll $s1, $s1, 2            # s1 4 times the memSize       
+# Version2
+        add $s1, $s0, $s1          # final address
+LOOP:   lw   $t0, 0($s0)           # t0 holds the temp loaded word
+        add  $s2, $s2, $t0
+     	addi $s0, $s0, 4
+        bne  $s1, $s0, LOOP
+# end of version 2 now print
+endLoop:
+
+Trick here was to eliminate the comparison because bne does that. Also
+eliminated the increment variable and used the address itself.  That always has
+to be updated.
+
+
+
+2.31
+
+
+int fib(int n) {
+   if (n == 0)
+	return 0;
+   else if (n ==1)
+  	return 1;
+   else 
+	return fib(n-1) + fib(n-2);
+}
+
+Here there is a mips assembly file that does this.  It is in SPIM and it works
+to fib 30 at least.  It is not fast because qtspim shows each line.  The fib
+number is the number of function calls or stack frames.
+
+2.32
+
+In line function.  I can't find the c -code.  Can't do an in-line version of a
+recursive routine.  Say we have a procedure like
+
+int PlusOne(int n) {
+	return n +1;
+}
+Not in line:
+I wrote a MIPS assembly like above one Inline and one a function call.  The
+Inline version saves 9 instructions. Four are to store the stack frame and 4 to
+retrieve it.  The stack frame stores $ra and $fp.  Neither are actually needed
+because the function is not recursive and doesn't call anything.  Could rewrite
+and get down to 1 instruction for the function.  That one can't be eliminated
+because the return is in $v0.
+
+Revised:
+
+You can do an inline version of a recursive routine.  Here it is for fac in
+2R32FacInline.s   Here it is still a function and by moving code into main you
+would save two instructions, jal and jr.  I kept this as a function to keep code
+separate.  Each loop iteration, compared with the recursive function saves 6
+instructions -- loading and storing on the stack.  More would be saved if more
+registers needed.  The loop of 1 or zero would save only 5.  However the
+iterative version doesn't even loop for those values as it sets the return to 1
+initially.  Unrolling would save an additional 2 instructions per iteration slti
+and beq.  One could rewrite the loop to only use beq a0, 0, saving one
+instruction per loop.
+2.33
+
+
+Here I will use the convention of ReadString.s to describe the stack pointer as
+used in Fibonacci. Stack size is 32
+
+$sp Offset $fp offset   name	value		
+28	   0		$fp	Prior $fp
+24	   -4		$ra	Prior $ra
+20	   -8		$a0	current $a0 needed for recursion
+16	   -12		$s0	prior $s0 that should be restored
+
+Here we need to save $fp because it is used to get the argument after a
+recursive call.  $s0 is also used because it stores the return of the first
+recursive call.  $a0 is also needed to store because after the first recursive
+call, $a0 will be reset.  We really need 16 bytes so we could have used a frame
+size of 24 instead. That is the minimum frame size.
+
+
+2.34 
+
+translate into mips:
+int f(int a, b, c, d) {
+	return func(func(a,b), c+d))
+}
+func is int func(int a, int b);  any function.
+
+This has been written in MIPS, were f stores C+d in $s0, $ra and $fp. (fp could be
+eliminated but is nice so was included).
+
+It takes any 4 arguments from the command line, parses it and saves them to
+variables.  IT then calls f which  recursively calls func.  My func is mul.
+func saves fp too but doesn't need to save ra, or  $s0.
+
+
+2.35
+
+I don't think so.  The idea for tail call is to create a new function with more
+arguments.  If func were defined then I chances are good it  would work.2.35
+
+
+
+No.   You would need to modify the function to make a tail call.  
+as it stands the line:
+
+return func(func(a,b), c) would enter MIPS like:
+
+(copied from 2R35.s)
+        jal func           # first function call
+        move $a0, $v0      # first argument restored
+        lw   $a1, -4($fp)   
+        jal func          # second call
+...
+	jr $ra
+
+For a tail call optimization, one has to make a new function
+f3(a, b, c) that captures the state of the function in the three arguments.
+As the recursive function operates each call needs to simplify the arguments
+until a base case is reached and a condition is met.  Here there is no base
+case, no condition and no simplifying arguments, so the successive calls would
+not lead ultimately to the base case. Putting f3 in a function still involves 2
+function calls, and does not eliminate the recursion.
+
+Had there been a definition of f like f(a,b) = a*b, one could simply f3 and make
+it recursive, most likely.  In the factorial case f(n) = f(n-1) *n, the argument
+decreases each time approaching the base case and the relationship between
+successive iterations is defined.  Not done here with this function. 
+
+One way to save the day would be to define another 3 argument function like
+this:
+
+
+int f4(int a,int b,int c)
+{
+    if (c < 1)
+	return f(a, b);
+    else
+       return f3(a, b*c, c -1)
+}
+
+This has a base case and the state of the function is summarized in the three
+arguments. The second argument would be the accumulator. This function could be
+made tail-call optimized.
+
+In essense the tail call redefine a0, a1, a2 if the else condition is true, and
+loop to the beginning to just after the stack frame is defined.  Only if the if
+condition were true would it call the function and return, restoring the stack.
+
+2.36.
+
+Just before f returns the stack is returned to the state it was in prior to the
+function call. $ra is the address of the line PC + 4.  $sp is exactly as it was
+in the caller of f: f's stack frame is dropped. $s3 will have the same value as
+it would have when the caller called f. $t5 could have any value.  We don't know
+if func alters $t5 but it could.
+
