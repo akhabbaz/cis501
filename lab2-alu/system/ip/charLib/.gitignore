@@ -1,0 +1,7 @@
+doc/
+hdl/
+misc/
+sim/
+simulation/
+summary.log
+synth/

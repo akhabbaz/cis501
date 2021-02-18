@@ -6,24 +6,29 @@
 `define oneH  16'h1
 `define negOne 16'hFFFF
 `define DataWidth 16
+`define oneBit      1
 `define selectTwo   1
 `define selectFour  2
 `define selectEight 3
+`define selectSixteen 4
 `default_nettype none
 /*   mux2to1_16bit will choose input based on s, choosing a (s = 0) or b( s =
  *   1)
 */
 
 module mux2to1_16bit( input wire s, input wire [15:0] a, input wire [15:0] b,
-                   output reg [15:0] y);
+                   output wire [15:0] y);
       
-	always @(a, b, s)
-           begin
-              case (s)
- 		1'b0   : y = a;
-                1'b1   : y = b;
-              endcase
-           end
+	wire [2*`DataWidth-1:0] grouped;
+        merge2  #(.n(`DataWidth)) m2(.a(a), .b(b), .out(grouped));
+        multiplex #(.s(`selectTwo), .n(`DataWidth)) mp(.sel(s), .in(grouped), .out(y));
+//	always @(a, b, s)
+//           begin
+//              case (s)
+// 		1'b0   : y = a;
+//                1'b1   : y = b;
+//              endcase
+//           end
 endmodule
 /*  mux8to1_16 bit chooses an input a to h  and sends it to the output y
 */
@@ -31,51 +36,63 @@ module mux8to1_16bit( input wire[2:0] s, input wire [15:0] a,
                       input wire [15:0] b, input wire [15:0] c, 
                       input wire [15:0] d, input wire [15:0] e, 
                       input wire [15:0] f, input wire [15:0] g, 
-                      input wire [15:0] h, output reg [15:0] y);
-	always @(a, b, c, d, e, f, g, h, s)
-           begin
-              case (s)
- 		3'b000   : y = a;
-                3'b001   : y = b;
-                3'b010	 : y = c;
- 		3'b011   : y = d;
-                3'b100   : y = e;
-                3'b101	 : y = f;
- 		3'b110   : y = g;
-                default  : y = h;
-              endcase
-           end
+                      input wire [15:0] h, output wire [15:0] y);
+	wire [8*`DataWidth-1:0] grouped;
+        merge8  #(.n(`DataWidth)) m8(.a(a), .b(b),  .c(c), .d(d), 
+		.e(e), .f(f), .g(g), .h(h), .out(grouped));
+        multiplex #(.s(`selectEight), .n(`DataWidth)) mp(.sel(s), .in(grouped), .out(y));
+//	always @(a, b, c, d, e, f, g, h, s)
+//           begin
+//              case (s)
+// 		3'b000   : y = a;
+//                3'b001   : y = b;
+//                3'b010	 : y = c;
+// 		3'b011   : y = d;
+//                3'b100   : y = e;
+//                3'b101	 : y = f;
+// 		3'b110   : y = g;
+//                default  : y = h;
+//              endcase
+//           end
 endmodule
 
              
 module mux4to1_16bit( input wire[1:0] s, input wire [15:0] a, 
                       input wire [15:0] b, input wire [15:0] c, 
-                      input wire [15:0] d, output reg [15:0] y);
+                      input wire [15:0] d, output wire [15:0] y);
       
-	always @(a, b, c, d, s)
-           begin
-              case (s)
- 		2'b00   : y = a;
-                2'b01   : y = b;
-                2'b10   : y = c;
-                default : y = d;
-              endcase
-           end
+	wire [4*`DataWidth-1:0] grouped;
+        merge4  #(.n(`DataWidth)) m4(.a(a), .b(b),  .c(c), .d(d), 
+		 		.out(grouped));
+        multiplex #(.s(`selectFour), .n(`DataWidth)) mp(.sel(s), .in(grouped), .out(y));
+//	always @(a, b, c, d, s)
+//           begin
+//              case (s)
+// 		2'b00   : y = a;
+//                2'b01   : y = b;
+//                2'b10   : y = c;
+//                default : y = d;
+//              endcase
+//           end
 endmodule
 // one bit version
 module mux4to1_1bit( input wire[1:0] s, input wire  a, 
                       input wire  b, input wire  c, 
-                      input wire  d, output reg  y);
+                      input wire  d, output wire  y);
       
-	always @(a, b, c, d, s)
-           begin
-              case (s)
- 		2'b00   : y = a;
-                2'b01   : y = b;
-                2'b10   : y = c;
-                default : y = d;
-              endcase
-           end
+	wire [4*`oneBit-1:0] grouped;
+        merge4  #(.n(`oneBit)) m4(.a(a), .b(b),  .c(c), .d(d), 
+		 		.out(grouped));
+        multiplex #(.s(`selectFour), .n(`oneBit)) mp(.sel(s), .in(grouped), .out(y));
+//	always @(a, b, c, d, s)
+//           begin
+//              case (s)
+// 		2'b00   : y = a;
+//                2'b01   : y = b;
+//                2'b10   : y = c;
+//                default : y = d;
+//              endcase
+//           end
 endmodule
 /*  sext  sign extends.  It uses the least significant N bits and sign extends
  *  them to a bus width of W.  N must be less than W.*/
@@ -204,14 +221,22 @@ module logicalOps( input wire immediateAnd, input wire[15:0] i_r1data,
       assign          orprod   = i_r1data | i_r2data;
       assign          notvalue = ~i_r1data;
       assign         xorprod   = i_r1data ^ i_r2data;
-      mux2to1_16bit  selectAndInput(.s(immediateAnd), .a(i_r2data), 
-                                    .b(sext5),  .y(secondInput));
-      
+      //mux2to1_16bit  selectAndInput(.s(immediateAnd), .a(i_r2data), 
+      //                              .b(sext5),  .y(secondInput));
+      wire [31:0] sext5_i_r2;
+      merge2   #( .n(`DataWidth))  m2(.a(i_r2data), .b(sext5), .out(sext5_i_r2));
+      multiplex    #(.s(`selectTwo), .n(`DataWidth))  selectAndInput  (.sel(immediateAnd), .in(sext5_i_r2), 
+			.out(secondInput));
       assign         andprod = i_r1data & secondInput;
       wire        [1:0] control = immediateAnd? 2'b0: sext5[4:3];
        //choose the correct signal..
-       mux4to1_16bit selectLogical( .s(control), .a(andprod), .b(notvalue),
-				.c(orprod),  .d(xorprod), .y(o_result));
+      // mux4to1_16bit selectLogical( .s(control), .a(andprod), .b(notvalue),
+      // 				.c(orprod),  .d(xorprod), .y(o_result));
+      wire [63:0] logicalChoices;
+      merge4 #(.n(`DataWidth)) m4(.a(andprod), .b(notvalue), .c(orprod), .d(xorprod),
+			.out(logicalChoices));
+      multiplex  #(.s(`selectFour), .n(`DataWidth)) selectLogical(.sel(control),
+		.in(logicalChoices), .out(o_result));
 endmodule
       
 /*  inputs are function controls i_r1, i_r2 data, its inverse; returns
@@ -237,30 +262,38 @@ endmodule
  * summary*/    
 module selectInstruction( s,  br, arth, cmp, jsr, log,  ldstr,  rti, const,
 		shift, jmp, hiconst, trap, o_result);
-	input wire [3:0] s;
-	input wire [15:0] br, arth, cmp, jsr, log, ldstr, rti, 
+	input wire [`selectSixteen -1:0] s;
+	input wire [`DataWidth -1:0] br, arth, cmp, jsr, log, ldstr, rti, 
 		const, shift, jmp, hiconst, trap;
-	output reg [15:0] o_result;
-        always @(s, br, arth, cmp, jsr, log, ldstr, rti, const, shift,
-                    jmp, hiconst, trap)
-           begin
-              case (s)
- 		4'b0000     : o_result  = br;
-                4'b0001     : o_result  = arth;
-                4'b0010     : o_result  = cmp;
-                4'b0100     : o_result  = jsr;
-                4'b0101     : o_result  = log;
-                4'b0110     : o_result  = ldstr;
-                4'b0111     : o_result  = ldstr;
-                4'b1000     : o_result  = rti;
-                4'b1001     : o_result  = const;
-                4'b1010     : o_result  = shift;
-                4'b1100     : o_result  = jmp;
-                4'b1101     : o_result  = hiconst;
-                4'b1111     : o_result  = trap; 
-                default     : o_result  = `zeroH;
-              endcase
-           end
+	output wire [`DataWidth-1 :0] o_result;
+        wire [16 *`DataWidth-1:0] grouped;
+        merge16  #(.w(`DataWidth)) m16(.a(br), .b(arth),    .c(cmp),    .d(`zeroH),
+				      .e(jsr), .f(log),     .g(ldstr),  .h(ldstr),
+                                      .i(rti), .j(const),   .k(shift),  .l(`zeroH),
+                                      .m(jmp), .n(hiconst), .o(`zeroH), .p(trap), 
+		 		               .out(grouped));
+        multiplex #(.s(`selectSixteen), .n(`DataWidth)) mp(.sel(s),
+				.in(grouped), .out(o_result));
+       // always @(s, br, arth, cmp, jsr, log, ldstr, rti, const, shift,
+       //             jmp, hiconst, trap)
+       //    begin
+       //       case (s)
+       // 	4'b0000     : o_result  = br;
+       //         4'b0001     : o_result  = arth;
+       //         4'b0010     : o_result  = cmp;
+       //         4'b0100     : o_result  = jsr;
+       //         4'b0101     : o_result  = log;
+       //         4'b0110     : o_result  = ldstr;
+       //         4'b0111     : o_result  = ldstr;
+       //         4'b1000     : o_result  = rti;
+       //         4'b1001     : o_result  = const;
+       //         4'b1010     : o_result  = shift;
+       //         4'b1100     : o_result  = jmp;
+       //         4'b1101     : o_result  = hiconst;
+       //         4'b1111     : o_result  = trap; :
+       //         default     : o_result  = `zeroH;
+       //       endcase
+       //    end
 endmodule
    
 
